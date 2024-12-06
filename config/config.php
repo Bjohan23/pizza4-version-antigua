@@ -1,9 +1,9 @@
 <?php
 
 
-define('DB_HOST', '143.110.157.18');
-define('DB_USER', 'dev_user');
-define('DB_PASS', 'Lyracorp1104*');
+define('DB_HOST', 'localhost');
+define('DB_USER', 'root');
+define('DB_PASS', '');
 define('DB_NAME', 'piza4');
 define('USERNAME', 'johan230804@gmail.com');
 define('NOMBRE_EMPRE', 'PIZZERIA ZARELLE');

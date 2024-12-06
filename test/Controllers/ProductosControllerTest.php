@@ -130,10 +130,10 @@ class ProductosControllerTest extends TestCase
         echo "\n✓ Datos verificados en BD";
         echo "\nAserciones realizadas: " . $this->getCount() . "\n";
     }
-/**
- * @test
- * @testdox Se puede editar un producto existente
- */
+    /**
+     * @test
+     * @testdox Se puede editar un producto existente
+     */
     public function testEdit()
     {
         echo "\nPrueba editar producto:";
@@ -157,11 +157,11 @@ class ProductosControllerTest extends TestCase
         echo "\n✓ Cambios verificados en BD";
         echo "\nAserciones realizadas: " . $this->getCount() . "\n";
     }
-/**
- * @test
- * @testdox Se puede eliminar un producto
- * @doesNotPerformAssertions
- */
+    /**
+     * @test
+     * @testdox Se puede eliminar un producto
+     * @doesNotPerformAssertions
+     */
     public function testDelete()
     {
         echo "\nPrueba eliminar producto:";
@@ -176,7 +176,6 @@ class ProductosControllerTest extends TestCase
             echo "\n✓ Producto eliminado";
         }
         echo "\nAserciones realizadas: " . $this->getCount() . "\n";
-        
     }
 
     protected function tearDown(): void
