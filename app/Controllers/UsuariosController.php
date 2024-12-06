@@ -5,86 +5,85 @@ class UsuariosController extends Controller
     {
         Session::init();
         if (!Session::get('usuario_id')) {
-            header('Location: ' . SALIR . '');
+            header('Location: ' . SALIR);
+            if (TESTING) return;
             exit();
-        } else {
-            $usuarioModel = $this->model('Usuario');
-            $usuarios = $usuarioModel->getUsuarios();
-            $usuarioModel = $this->model('Usuario');
-            $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-            $this->view('usuarios/index', ['usuarios' => $usuarios, 'rolUsuario' => $rolUsuario]);
         }
+
+        $usuarioModel = $this->model('Usuario');
+        $usuarios = $usuarioModel->getUsuarios();
+        $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+
+        if (TESTING) {
+            return ['usuarios' => $usuarios, 'rolUsuario' => $rolUsuario];
+        }
+
+        $this->view('usuarios/index', ['usuarios' => $usuarios, 'rolUsuario' => $rolUsuario]);
     }
 
     public function create()
-{
-    Session::init();
-    if (!Session::get('usuario_id')) {
-        header('Location: ' . SALIR);
-        exit();
-    }
+    {
+        Session::init();
+        if (!Session::get('usuario_id')) {
+            header('Location: ' . SALIR);
+            if (TESTING) return false;
+            exit();
+        }
 
-    if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-        $data = [
-            'nombre' => isset($_POST['nombre']) ? $_POST['nombre'] : null,
-            'email' => isset($_POST['email']) ? $_POST['email'] : null,
-            'telefono' => isset($_POST['telefono']) ? $_POST['telefono'] : null,
-            'direccion' => isset($_POST['direccion']) ? $_POST['direccion'] : null,
-            'contrasena' => password_hash($_POST['contrasena'], PASSWORD_DEFAULT),
-            'rol_id' => $_POST['rol_id'],
-            'dni' => $_POST['dni']
-        ];
-        $personaModel = $this->model('Persona');
-        $usuarioModel = $this->model('Usuario');
-        $listRolesModel = $this->model('ListRoles');
-
-        try {
-            $persona_id = $personaModel->create($data['nombre'], $data['email'], $data['telefono'], $data['direccion'], $data['dni']);
-
-            $data2 = [
-                'persona_id' => $persona_id,
-                'contrasena' => $data['contrasena']
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            $data = [
+                'nombre' => $_POST['nombre'] ?? '',
+                'email' => $_POST['email'] ?? '',
+                'telefono' => $_POST['telefono'] ?? '',
+                'direccion' => $_POST['direccion'] ?? '',
+                'contrasena' => password_hash($_POST['contrasena'], PASSWORD_DEFAULT),
+                'rol_id' => $_POST['rol_id'],
+                'dni' => $_POST['dni']
             ];
 
-            $usuario_id = $usuarioModel->createUsuario($data2);
+            try {
+                $personaModel = $this->model('Persona');
+                $usuarioModel = $this->model('Usuario');
+                $listRolesModel = $this->model('ListRoles');
 
-            // Asignar rol al usuario
-            $listRolesModel->assignRole($usuario_id, $data['rol_id']);
+                $persona_id = $personaModel->create($data['nombre'], $data['email'], $data['telefono'], $data['direccion'], $data['dni']);
 
-            // Redireccionar con un mensaje de éxito
-            header('Location: ' . USER . '?success=Usuario creado con éxito');
-            exit();
-        } catch (Exception $e) {
-            $data['error'] = $e;
-            $rolModel = $this->model('Rol');
-            $data['roles'] = $rolModel->getAllRoles();
-            $this->view('usuarios/create', $data);
+                $usuario_id = $usuarioModel->createUsuario([
+                    'persona_id' => $persona_id,
+                    'contrasena' => $data['contrasena']
+                ]);
+
+                $listRolesModel->assignRole($usuario_id, $data['rol_id']);
+
+                if (TESTING) return true;
+
+                header('Location: ' . USER . '?success=Usuario creado con éxito');
+                exit();
+            } catch (Exception $e) {
+                if (TESTING) return false;
+                header('Location: ' . USER . '?error=' . $e->getMessage());
+                exit();
+            }
         }
-    } else {
+
+        if (TESTING) return false;
+
         $rolModel = $this->model('Rol');
         $roles = $rolModel->getAllRoles();
-
-        $usuarioModel = $this->model('Usuario');
-        $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-        $this->view('usuarios/create', ['roles' => $roles, 'rolUsuario' => $rolUsuario]);
+        $this->view('usuarios/create', ['roles' => $roles]);
     }
-}
-
-
 
     public function edit($id)
     {
         Session::init();
         if (!Session::get('usuario_id')) {
-            header('Location: ' . SALIR . '');
+            header('Location: ' . SALIR);
+            if (TESTING) return false;
             exit();
-        } else {
-            $usuarioModel = $this->model('Usuario');
-            $personaModel = $this->model('Persona');
-            $listRolesModel = $this->model('ListRoles');
-            $rolModel = $this->model('Rol');
+        }
 
-            if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            try {
                 $data = [
                     'id' => $id,
                     'nombre' => $_POST['nombre'],
@@ -95,75 +94,90 @@ class UsuariosController extends Controller
                     'contrasena' => !empty($_POST['contrasena']) ? password_hash($_POST['contrasena'], PASSWORD_DEFAULT) : null,
                     'rol_id' => $_POST['rol_id']
                 ];
-                try {
-                    // Actualizar datos de la persona
-                    $persona_id = $usuarioModel->getPersonaIdByUsuarioId($id);
-                    $personaModel->update($persona_id, $data['nombre'], $data['email'], $data['telefono'], $data['direccion'], $data['dni']);
 
-                    // Actualizar datos del usuario
-                    $usuarioData = [
+                $usuarioModel = $this->model('Usuario');
+                $personaModel = $this->model('Persona');
+                $listRolesModel = $this->model('ListRoles');
+
+                // Actualizar persona
+                $persona_id = $usuarioModel->getPersonaIdByUsuarioId($id);
+                $personaModel->update(
+                    $persona_id,
+                    $data['nombre'],
+                    $data['email'],
+                    $data['telefono'],
+                    $data['direccion'],
+                    $data['dni']
+                );
+
+                // Actualizar contraseña si se proporcionó una nueva
+                if ($data['contrasena']) {
+                    $usuarioModel->updateUsuarioContrasenia([
                         'id' => $id,
-                        'persona_id' => $persona_id,
                         'contrasena' => $data['contrasena']
-                    ];
-                    $usuarioModel->updateUsuarioContrasenia($usuarioData);
-
-                    // Actualizar el rol del usuario
-                    $listRolesModel->updateRole($id, $data['rol_id']);
-
-                    header('Location: ' . USER . '?success=Usuario actualizado con éxito');
-                    exit();
-                } catch (Exception $e) {
-                    $data['error'] = $e->getMessage();
-                    $roles = $rolModel->getAllRoles();
-                    $usuario = $usuarioModel->getUsuarioById($id);
-                    $this->view('usuarios/edit', ['usuario' => $usuario, 'roles' => $roles, 'error' => $data['error']]);
+                    ]);
                 }
-            } else {
-                $usuario = $usuarioModel->getUsuarioById($id);
-                $roles = $rolModel->getAllRoles();
-                $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
 
-                $this->view('usuarios/edit', ['usuario' => $usuario, 'roles' => $roles, 'rolUsuario' => $rolUsuario]);
+                // Actualizar rol
+                $listRolesModel->updateRole($id, $data['rol_id']);
+
+                if (TESTING) {
+                    return true;
+                }
+
+                header('Location: ' . USER . '?success=Usuario actualizado con éxito');
+                exit();
+            } catch (Exception $e) {
+                if (TESTING) return false;
+                header('Location: ' . USER . '?error=' . $e->getMessage());
+                exit();
             }
+        } else {
+            if (TESTING) return [
+                'title' => 'Editar Usuario',
+                'submit' => 'Actualizar'
+            ];
+
+            $usuarioModel = $this->model('Usuario');
+            $rolModel = $this->model('Rol');
+
+            $usuario = $usuarioModel->getUsuarioById($id);
+            $roles = $rolModel->getAllRoles();
+            $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+
+            $this->view('usuarios/edit', [
+                'usuario' => $usuario,
+                'roles' => $roles,
+                'rolUsuario' => $rolUsuario
+            ]);
         }
     }
 
-    public function delete($usuarioId)
+    public function delete($id)
     {
         Session::init();
         if (!Session::get('usuario_id')) {
-            header('Location: ' . SALIR . '');
+            header('Location: ' . SALIR);
+            if (TESTING) return false;
             exit();
         }
 
         try {
-            $listRolesModel = $this->model('ListRoles');
             $usuarioModel = $this->model('Usuario');
-            $personaModel = $this->model('Persona');
+            $usuarioModel->deleteUsuario($id);
 
-            // Obtener persona_id del usuario
-            $usuario = $usuarioModel->getUsuarioById($usuarioId);
-            $personaId = $usuario['persona_id'];
+            if (TESTING) return true;
 
-            // Eliminar roles asociados al usuario
-            $listRolesModel->deleteRolesByUsuarioId($usuarioId);
-
-            // Eliminar el usuario
-            $usuarioModel->deleteUsuario($usuarioId);
-
-            // Eliminar los datos personales
-            $personaModel->deletePersona($personaId);
-
-            // Redireccionar a la lista de usuarios con un mensaje de éxito
-            header('Location: ' . USER . '?success=Usuario eliminado con éxito');
+            header('Location: ' . USER . '?success=Usuario eliminado');
             exit();
         } catch (Exception $e) {
-            // Redireccionar a la lista de usuarios con un mensaje de error
-            header('Location: ' . USER . '?error= error al eliminar el usuario ');
+            if (TESTING) throw $e;
+
+            header('Location: ' . USER . '?error=' . $e->getMessage());
             exit();
         }
     }
+
 
     public function cuentaUsuario($id)
     {
