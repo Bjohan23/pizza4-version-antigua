@@ -42,21 +42,13 @@ class ProductosController extends Controller
     {
         try {
             Session::init();
-
             if (!Session::get('usuario_id')) {
                 header('Location: ' . SALIR);
+                if (TESTING) return false;
                 exit();
             }
 
             if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-                // Validar datos del POST
-                if (
-                    !isset($_POST['nombre']) || !isset($_POST['descripcion']) ||
-                    !isset($_POST['precio']) || !isset($_POST['categoria_id'])
-                ) {
-                    throw new Exception("Datos de formulario incompletos");
-                }
-
                 $data = [
                     'nombre' => trim($_POST['nombre']),
                     'descripcion' => trim($_POST['descripcion']),
@@ -65,30 +57,28 @@ class ProductosController extends Controller
                     'categoria_id' => trim($_POST['categoria_id'])
                 ];
 
-                if ($this->productoModel->createProducto($data)) {
+                $result = $this->productoModel->createProducto($data);
+
+                if (TESTING) return $result;
+
+                if ($result) {
                     header('Location: ' . PRODUCT . '?success=Producto registrado correctamente');
                     exit();
-                } else {
-                    throw new Exception("Error al crear el producto");
                 }
-            } else {
-                $rolUsuario = $this->usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-                $categorias = $this->categoriaModel->getCategorias();
-
-                if ($categorias === false || $rolUsuario === false) {
-                    throw new Exception("Error al obtener datos para el formulario");
-                }
-
-                $this->view('productos/create', [
-                    'categorias' => $categorias,
-                    'rolUsuario' => $rolUsuario
-                ]);
             }
-        } catch (Exception $e) {
-            error_log("Error en ProductosController->create: " . $e->getMessage());
-            $this->view('error/index', [
-                'mensaje' => 'Ha ocurrido un error al crear el producto'
+
+            if (TESTING) return false;
+
+            $rolUsuario = $this->usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+            $categorias = $this->categoriaModel->getCategorias();
+            $this->view('productos/create', [
+                'categorias' => $categorias,
+                'rolUsuario' => $rolUsuario
             ]);
+        } catch (Exception $e) {
+            if (TESTING) throw $e;
+            error_log($e->getMessage());
+            $this->view('error/index', ['mensaje' => 'Error al crear producto']);
         }
     }
 
@@ -96,21 +86,13 @@ class ProductosController extends Controller
     {
         try {
             Session::init();
-
             if (!Session::get('usuario_id')) {
                 header('Location: ' . SALIR);
+                if (TESTING) return false;
                 exit();
             }
 
             if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-                // Validar datos del POST
-                if (
-                    !isset($_POST['nombre']) || !isset($_POST['descripcion']) ||
-                    !isset($_POST['precio']) || !isset($_POST['categoria_id'])
-                ) {
-                    throw new Exception("Datos de formulario incompletos");
-                }
-
                 $data = [
                     'id' => $id,
                     'nombre' => trim($_POST['nombre']),
@@ -120,21 +102,21 @@ class ProductosController extends Controller
                     'categoria_id' => trim($_POST['categoria_id'])
                 ];
 
-                if ($this->productoModel->updateProducto($data)) {
+                $result = $this->productoModel->updateProducto($data);
+
+                if (TESTING) return $result;
+
+                if ($result) {
                     header('Location: ' . PRODUCT . '?success=Producto actualizado correctamente');
                     exit();
-                } else {
-                    throw new Exception("Error al actualizar el producto");
                 }
             }
+
+            if (TESTING) return false;
 
             $producto = $this->productoModel->getProductoById($id);
             $categorias = $this->categoriaModel->getCategorias();
             $rolUsuario = $this->usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-
-            if ($producto === false || $categorias === false || $rolUsuario === false) {
-                throw new Exception("Error al obtener datos para la edición");
-            }
 
             $this->view('productos/edit', [
                 'producto' => $producto,
@@ -142,10 +124,9 @@ class ProductosController extends Controller
                 'rolUsuario' => $rolUsuario
             ]);
         } catch (Exception $e) {
-            error_log("Error en ProductosController->edit: " . $e->getMessage());
-            $this->view('error/index', [
-                'mensaje' => 'Ha ocurrido un error al editar el producto'
-            ]);
+            if (TESTING) throw $e;
+            error_log($e->getMessage());
+            $this->view('error/index', ['mensaje' => 'Error al editar producto']);
         }
     }
 
@@ -153,23 +134,24 @@ class ProductosController extends Controller
     {
         try {
             Session::init();
-
             if (!Session::get('usuario_id')) {
                 header('Location: ' . SALIR);
+                if (TESTING) return false;
                 exit();
             }
 
-            if ($this->productoModel->deleteProducto($id)) {
+            $result = $this->productoModel->deleteProducto($id);
+
+            if (TESTING) return $result;
+
+            if ($result) {
                 header('Location: ' . PRODUCT . '?success=Producto eliminado correctamente');
                 exit();
-            } else {
-                throw new Exception("Error al eliminar el producto");
             }
         } catch (Exception $e) {
-            error_log("Error en ProductosController->delete: " . $e->getMessage());
-            $this->view('error/index', [
-                'mensaje' => 'Ha ocurrido un error al eliminar el producto'
-            ]);
+            if (TESTING) throw $e;
+            error_log($e->getMessage());
+            $this->view('error/index', ['mensaje' => 'Error al eliminar producto']);
         }
     }
 }

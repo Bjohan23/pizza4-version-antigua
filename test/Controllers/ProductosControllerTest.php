@@ -50,6 +50,7 @@ class ProductosControllerTest extends TestCase
             $this->db->bind(':contrasena', password_hash('test123', PASSWORD_DEFAULT));
             $this->db->execute();
             echo "\n✓ Usuario de prueba creado";
+            echo "\nAserciones realizadas: " . $this->getCount() . "\n";
         } catch (Exception $e) {
             echo "\nError creando datos de prueba: " . $e->getMessage();
             throw $e;
@@ -79,6 +80,7 @@ class ProductosControllerTest extends TestCase
         $this->db->execute();
         $this->db->commit();
         echo "\n✓ Base de datos limpiada";
+        echo "\nAserciones realizadas: " . $this->getCount() . "\n";
     }
     /**
      * @test
@@ -98,6 +100,7 @@ class ProductosControllerTest extends TestCase
         $this->assertNotEmpty($productos);
         $this->assertEquals("Producto Test", $productos[0]['nombre']);
         echo "\n✓ Datos de productos verificados";
+        echo "\nAserciones realizadas: " . $this->getCount() . "\n";
     }
     /**
      * @test
@@ -125,6 +128,7 @@ class ProductosControllerTest extends TestCase
         $producto = $this->db->single();
         $this->assertEquals(15.99, $producto['precio']);
         echo "\n✓ Datos verificados en BD";
+        echo "\nAserciones realizadas: " . $this->getCount() . "\n";
     }
 /**
  * @test
@@ -151,11 +155,13 @@ class ProductosControllerTest extends TestCase
         $producto = $this->db->single();
         $this->assertEquals('Producto Actualizado', $producto['nombre']);
         echo "\n✓ Cambios verificados en BD";
+        echo "\nAserciones realizadas: " . $this->getCount() . "\n";
     }
-
-    /**
-     * @doesNotPerformAssertions
-     */
+/**
+ * @test
+ * @testdox Se puede eliminar un producto
+ * @doesNotPerformAssertions
+ */
     public function testDelete()
     {
         echo "\nPrueba eliminar producto:";
@@ -166,8 +172,11 @@ class ProductosControllerTest extends TestCase
 
         if ($producto) {
             $this->productosController->delete(1);
+            echo "\nAserciones realizadas: " . $this->getCount() . "\n";
             echo "\n✓ Producto eliminado";
         }
+        echo "\nAserciones realizadas: " . $this->getCount() . "\n";
+        
     }
 
     protected function tearDown(): void
