@@ -21,6 +21,7 @@
     "test": "phpunit",
     "test:auth": "phpunit --colors=always test/Controllers/AuthControllerTest.php",
     "test:categoria": "phpunit --colors=always test/Controllers/CategoriaControllerTest.php",
+    "test:sede": "phpunit --colors=always --colors=always test/Controllers/SedeControllerTest.php",
     "test:controllers": "phpunit --colors=always test/Controllers/",
     "test:coverage": "phpunit --coverage-html coverage"
   }
