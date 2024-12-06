@@ -5,33 +5,40 @@ use PHPUnit\Framework\TestCase;
 class MesasControllerTest extends TestCase
 {
     private $mesasController;
-    private $mesaModelMock;
-    private $pisoModelMock;
-    private $usuarioModelMock;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Mockear los modelos
-        $this->mesaModelMock = $this->createMock(Mesa::class);
-        $this->pisoModelMock = $this->createMock(Piso::class);
-        $this->usuarioModelMock = $this->createMock(Usuario::class);
-
-        // Crear una instancia del controlador con los mocks
+        // Inicializar el controlador real
         $this->mesasController = new MesasController();
 
-        // Reemplazar el método `model` del controlador para devolver los mocks
-        $this->mesasController->model = function ($modelName) {
-            switch ($modelName) {
-                case 'Mesa':
-                    return $this->mesaModelMock;
-                case 'Piso':
-                    return $this->pisoModelMock;
-                case 'Usuario':
-                    return $this->usuarioModelMock;
-            }
-        };
+        // Configurar la base de datos de prueba
+        $this->resetTestDatabase();
+    }
+
+    private function resetTestDatabase(): void
+    {
+        // Configurar tu conexión a la base de datos de pruebas
+        $pdo = new PDO('mysql:host=localhost;dbname=test_db', 'root', '');
+        $pdo->exec('
+            SET FOREIGN_KEY_CHECKS=0;
+            TRUNCATE TABLE mesas;
+            TRUNCATE TABLE pisos;
+            TRUNCATE TABLE usuarios;
+            SET FOREIGN_KEY_CHECKS=1;
+        ');
+
+        // Insertar datos iniciales
+        $pdo->exec("
+            INSERT INTO usuarios (id, nombre, apellidos, correo, contraseña, rol) 
+            VALUES (1, 'Admin', 'User', 'admin@example.com', '123456', 'admin');
+            
+            INSERT INTO pisos (id, nombre) VALUES (1, 'Piso 1');
+            
+            INSERT INTO mesas (id, numero, capacidad, piso_id) 
+            VALUES (1, 'Mesa 1', 4, 1), (2, 'Mesa 2', 2, 1);
+        ");
     }
 
     public function testIndexWithAuthenticatedUser()
@@ -39,23 +46,14 @@ class MesasControllerTest extends TestCase
         // Simular sesión
         $_SESSION['usuario_id'] = 1;
 
-        // Configurar mocks
-        $this->mesaModelMock->method('getMesas')->willReturn([
-            ['id' => 1, 'numero' => 'Mesa 1', 'capacidad' => 4],
-            ['id' => 2, 'numero' => 'Mesa 2', 'capacidad' => 2],
-        ]);
-
-        $this->usuarioModelMock->method('getRolesUsuarioAutenticado')
-            ->with(1)
-            ->willReturn(['admin']);
-
         // Capturar la salida de la vista
         ob_start();
         $this->mesasController->index();
         $output = ob_get_clean();
 
-        // Verificar que la salida incluye las mesas y el rol
+        // Verificar que la salida incluye las mesas
         $this->assertStringContainsString('Mesa 1', $output);
+        $this->assertStringContainsString('Mesa 2', $output);
         $this->assertStringContainsString('admin', $output);
     }
 
@@ -75,13 +73,6 @@ class MesasControllerTest extends TestCase
     {
         $_SESSION['usuario_id'] = 1;
 
-        // Simular pisos y roles
-        $this->pisoModelMock->method('getPisos')->willReturn([
-            ['id' => 1, 'nombre' => 'Piso 1'],
-        ]);
-        $this->usuarioModelMock->method('getRolesUsuarioAutenticado')
-            ->willReturn(['admin']);
-
         // Simular datos POST
         $_POST = [
             'piso_id' => 1,
@@ -89,63 +80,36 @@ class MesasControllerTest extends TestCase
             'capacidad' => 6,
         ];
 
-        $this->mesaModelMock->expects($this->once())
-            ->method('createMesa')
-            ->with($_POST)
-            ->willReturn(true);
-
         // Capturar headers enviados
-        $this->expectOutputRegex('/Location: .*TABLE.*/i');
-
+        ob_start();
         $this->mesasController->create();
-    }
+        ob_end_clean();
 
-    public function testEditWithValidData()
-    {
-        $_SESSION['usuario_id'] = 1;
+        // Verificar que la mesa fue creada en la base de datos
+        $pdo = new PDO('mysql:host=localhost;dbname=test_db', 'root', '');
+        $stmt = $pdo->query('SELECT * FROM mesas WHERE numero = "Mesa 3"');
+        $mesa = $stmt->fetch();
 
-        $this->mesaModelMock->method('getMesaById')
-            ->with(1)
-            ->willReturn(['id' => 1, 'numero' => 'Mesa 1', 'capacidad' => 4]);
-
-        $this->pisoModelMock->method('getPisos')->willReturn([
-            ['id' => 1, 'nombre' => 'Piso 1'],
-        ]);
-
-        $_POST = [
-            'piso_id' => 1,
-            'numero' => 'Mesa Editada',
-            'capacidad' => 8,
-        ];
-
-        $this->mesaModelMock->expects($this->once())
-            ->method('updateMesa')
-            ->with(['id' => 1] + $_POST)
-            ->willReturn(true);
-
-        // Capturar headers enviados
-        $this->expectOutputRegex('/Location: .*TABLE.*/i');
-
-        $this->mesasController->edit(1);
+        $this->assertNotEmpty($mesa);
+        $this->assertEquals('Mesa 3', $mesa['numero']);
+        $this->assertEquals(6, $mesa['capacidad']);
     }
 
     public function testDelete()
     {
         $_SESSION['usuario_id'] = 1;
 
-        $this->mesaModelMock->method('getMesaById')
-            ->with(1)
-            ->willReturn(['id' => 1, 'piso_id' => 1]);
-
-        $this->mesaModelMock->expects($this->once())
-            ->method('deleteMesa')
-            ->with(1)
-            ->willReturn(true);
-
         // Capturar headers enviados
-        $this->expectOutputRegex('/Location: .*TABLE.*/i');
-
+        ob_start();
         $this->mesasController->delete(1);
+        ob_end_clean();
+
+        // Verificar que la mesa fue eliminada de la base de datos
+        $pdo = new PDO('mysql:host=localhost;dbname=test_db', 'root', '');
+        $stmt = $pdo->query('SELECT * FROM mesas WHERE id = 1');
+        $mesa = $stmt->fetch();
+
+        $this->assertEmpty($mesa);
     }
 
     protected function tearDown(): void

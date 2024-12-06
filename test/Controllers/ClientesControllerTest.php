@@ -31,7 +31,7 @@ class ClientesControllerTest extends TestCase
     {
         // Asegurarse de que la base de datos contiene datos antes de llamar a index()
         $this->db->query("INSERT INTO clientes (nombre, email, telefono, direccion, dni)
-                            VALUES ('Juan Pérez', 'juan@example.com', '123456789', 'Calle Falsa 123', '12345678A')");
+                                VALUES ('Juan Pérez', 'juan@example.com', '123456789', 'Calle Falsa 123', '12345678A')");
 
         // Llamar al método index del controlador
         $this->controller->index();
@@ -117,4 +117,3 @@ class ClientesControllerTest extends TestCase
         $this->assertNull($cliente);
     }
 }
-?>

@@ -5,112 +5,98 @@ use PHPUnit\Framework\TestCase;
 class HomeControllerTest extends TestCase
 {
     private $homeController;
-    private $sessionMock;
-    private $sedeModelMock;
 
     protected function setUp(): void
     {
         parent::setUp();
 
-        // Crear mocks de las dependencias
-        $this->sessionMock = $this->createMock(Session::class);
-        $this->sedeModelMock = $this->createMock(Sede::class);
-
-        // Configurar el controlador con los mocks
+        // Inicializar controlador
         $this->homeController = new HomeController();
-        $this->homeController->setSession($this->sessionMock);
-        $this->homeController->setSedeModel($this->sedeModelMock);
+
+        // Configurar base de datos de prueba
+        $db = new mysqli('localhost', 'root', '', 'piza4'); // Configura según tu entorno
+        $db->query('TRUNCATE TABLE sedes');
+        $db->query('TRUNCATE TABLE usuarios');
+        $db->query('TRUNCATE TABLE clientes');
+    }
+
+    protected function tearDown(): void
+    {
+        // Limpiar base de datos después de cada prueba
+        $db = new mysqli('localhost', 'root', '', 'piza4');
+        $db->query('TRUNCATE TABLE sedes');
+        $db->query('TRUNCATE TABLE usuarios');
+        $db->query('TRUNCATE TABLE clientes');
+        $db->close();
     }
 
     public function testIndexUserNotAuthenticated()
     {
-        // Configurar el mock de sesión para simular un usuario no autenticado
-        $this->sessionMock->expects($this->once())
-                          ->method('get')
-                          ->with('usuario_id')
-                          ->willReturn(null);
+        // Simular un usuario no autenticado
+        $_SESSION['usuario_id'] = null;
 
-        ob_start(); // Capturar salida
+        ob_start();
         $this->homeController->index();
-        $output = ob_get_clean(); // Obtener salida
+        $output = ob_get_clean();
 
+        // Verificar que redirige a la página de salida
         $this->assertStringContainsString('Location: ' . SALIR, $output);
     }
 
     public function testIndexRedirectToSedeRegistroWhenNoSedesExist()
     {
-        // Configurar el mock de sesión para simular un usuario autenticado
-        $this->sessionMock->expects($this->once())
-                          ->method('get')
-                          ->with('usuario_id')
-                          ->willReturn(1);
+        // Simular un usuario autenticado
+        $_SESSION['usuario_id'] = 1;
 
-        // Configurar el mock de Sede para que devuelva 0 sedes
-        $this->sedeModelMock->expects($this->once())
-                            ->method('countSedes')
-                            ->willReturn(0);
+        // Limpiar sedes
+        $db = new mysqli('localhost', 'root', '', 'piza4');
+        $db->query('TRUNCATE TABLE sedes');
 
-        ob_start(); // Capturar salida
+        ob_start();
         $this->homeController->index();
-        $output = ob_get_clean(); // Obtener salida
+        $output = ob_get_clean();
 
+        // Verificar que redirige a la página de registro de sedes
         $this->assertStringContainsString('Location: /PIZZA4/public/sede/registro', $output);
     }
 
     public function testIndexLoadsDashboardViewWithDefaultData()
     {
-        // Configurar el mock de sesión para simular un usuario autenticado
-        $this->sessionMock->expects($this->once())
-                          ->method('get')
-                          ->with('usuario_id')
-                          ->willReturn(1);
+        // Simular un usuario autenticado
+        $_SESSION['usuario_id'] = 1;
 
-        // Configurar el mock de Sede para devolver un conteo positivo de sedes
-        $this->sedeModelMock->expects($this->once())
-                            ->method('countSedes')
-                            ->willReturn(1);
+        // Insertar una sede
+        $db = new mysqli('localhost', 'root', '', 'piza4');
+        $db->query("INSERT INTO sedes (nombre, direccion) VALUES ('Sede Central', 'Calle Principal 123')");
 
-        // Sobrescribir la función view para capturar los datos pasados
-        $this->homeController->setView(function ($view, $data) use (&$capturedData) {
-            $capturedData = $data; // Capturar los datos pasados a la vista
-        });
-
+        ob_start();
         $this->homeController->index();
+        $output = ob_get_clean();
 
-        // Verificar que los datos predeterminados se cargan correctamente
-        $this->assertArrayHasKey('usuariosCount', $capturedData);
-        $this->assertEquals(0, $capturedData['usuariosCount']);
-        $this->assertArrayHasKey('clientesCount', $capturedData);
-        $this->assertEquals(0, $capturedData['clientesCount']);
-        $this->assertArrayHasKey('productosMasVendidos', $capturedData);
-        $this->assertIsArray($capturedData['productosMasVendidos']);
+        // Verificar que se carga la vista del dashboard
+        $this->assertStringContainsString('Dashboard', $output);
+        $this->assertStringContainsString('Usuarios: 0', $output);
+        $this->assertStringContainsString('Clientes: 0', $output);
     }
 
     public function testIndexHandlesExceptionGracefully()
     {
-        // Configurar el mock de sesión para simular un usuario autenticado
-        $this->sessionMock->expects($this->once())
-                          ->method('get')
-                          ->with('usuario_id')
-                          ->willReturn(1);
+        // Simular un usuario autenticado
+        $_SESSION['usuario_id'] = 1;
 
-        // Configurar el mock de Sede para lanzar una excepción
-        $this->sedeModelMock->expects($this->once())
-                            ->method('countSedes')
-                            ->willThrowException(new Exception('Simulated exception'));
-
-        // Sobrescribir la función view para capturar la vista de error
-        $this->homeController->setView(function ($view, $data) use (&$capturedData, &$capturedView) {
-            $capturedData = $data;
-            $capturedView = $view;
+        // Sobrescribir método `countSedes` para lanzar una excepción
+        $this->homeController->setSedeModel(new class {
+            public function countSedes()
+            {
+                throw new Exception('Simulated exception');
+            }
         });
 
+        ob_start();
         $this->homeController->index();
+        $output = ob_get_clean();
 
-        // Verificar que la vista de error se carga correctamente
-        $this->assertEquals('error/500', $capturedView);
-        $this->assertArrayHasKey('message', $capturedData);
-        $this->assertEquals('Ha ocurrido un error en el servidor', $capturedData['message']);
+        // Verificar que muestra la página de error
+        $this->assertStringContainsString('Ha ocurrido un error en el servidor', $output);
     }
 }
-
