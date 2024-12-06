@@ -5,7 +5,8 @@ class ProductosController extends Controller
     private $usuarioModel;
     private $categoriaModel;
 
-    public function __construct() {
+    public function __construct()
+    {
         // Inicializar los modelos que necesitamos
         $this->productoModel = $this->model('Producto');
         $this->usuarioModel = $this->model('Usuario');
@@ -16,36 +17,24 @@ class ProductosController extends Controller
     {
         try {
             Session::init();
-            
-            // Verificar autenticación
             if (!Session::get('usuario_id')) {
                 header('Location: ' . SALIR);
+                if (TESTING) return;
                 exit();
             }
 
-            // Obtener datos
             $productos = $this->productoModel->getAllProductos();
             $rolUsuario = $this->usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
 
-            // Verificar si los datos son válidos
-            if ($productos === false || $rolUsuario === false) {
-                throw new Exception("Error al obtener datos");
+            if (TESTING) {
+                return ['productos' => $productos, 'rolUsuario' => $rolUsuario];
             }
 
-            // Cargar vista
-            $this->view('productos/index', [
-                'productos' => $productos, 
-                'rolUsuario' => $rolUsuario
-            ]);
-
+            $this->view('productos/index', ['productos' => $productos, 'rolUsuario' => $rolUsuario]);
         } catch (Exception $e) {
-            // Registrar el error
-            error_log("Error en ProductosController->index: " . $e->getMessage());
-            
-            // Redirigir a página de error
-            $this->view('error/index', [
-                'mensaje' => 'Ha ocurrido un error al cargar los productos'
-            ]);
+            if (TESTING) throw $e;
+            error_log($e->getMessage());
+            $this->view('error/index', ['mensaje' => 'Error al cargar productos']);
         }
     }
 
@@ -53,7 +42,7 @@ class ProductosController extends Controller
     {
         try {
             Session::init();
-            
+
             if (!Session::get('usuario_id')) {
                 header('Location: ' . SALIR);
                 exit();
@@ -61,8 +50,10 @@ class ProductosController extends Controller
 
             if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Validar datos del POST
-                if (!isset($_POST['nombre']) || !isset($_POST['descripcion']) || 
-                    !isset($_POST['precio']) || !isset($_POST['categoria_id'])) {
+                if (
+                    !isset($_POST['nombre']) || !isset($_POST['descripcion']) ||
+                    !isset($_POST['precio']) || !isset($_POST['categoria_id'])
+                ) {
                     throw new Exception("Datos de formulario incompletos");
                 }
 
@@ -93,7 +84,6 @@ class ProductosController extends Controller
                     'rolUsuario' => $rolUsuario
                 ]);
             }
-
         } catch (Exception $e) {
             error_log("Error en ProductosController->create: " . $e->getMessage());
             $this->view('error/index', [
@@ -106,7 +96,7 @@ class ProductosController extends Controller
     {
         try {
             Session::init();
-            
+
             if (!Session::get('usuario_id')) {
                 header('Location: ' . SALIR);
                 exit();
@@ -114,8 +104,10 @@ class ProductosController extends Controller
 
             if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 // Validar datos del POST
-                if (!isset($_POST['nombre']) || !isset($_POST['descripcion']) || 
-                    !isset($_POST['precio']) || !isset($_POST['categoria_id'])) {
+                if (
+                    !isset($_POST['nombre']) || !isset($_POST['descripcion']) ||
+                    !isset($_POST['precio']) || !isset($_POST['categoria_id'])
+                ) {
                     throw new Exception("Datos de formulario incompletos");
                 }
 
@@ -149,7 +141,6 @@ class ProductosController extends Controller
                 'categorias' => $categorias,
                 'rolUsuario' => $rolUsuario
             ]);
-
         } catch (Exception $e) {
             error_log("Error en ProductosController->edit: " . $e->getMessage());
             $this->view('error/index', [
@@ -162,7 +153,7 @@ class ProductosController extends Controller
     {
         try {
             Session::init();
-            
+
             if (!Session::get('usuario_id')) {
                 header('Location: ' . SALIR);
                 exit();
@@ -174,7 +165,6 @@ class ProductosController extends Controller
             } else {
                 throw new Exception("Error al eliminar el producto");
             }
-
         } catch (Exception $e) {
             error_log("Error en ProductosController->delete: " . $e->getMessage());
             $this->view('error/index', [
