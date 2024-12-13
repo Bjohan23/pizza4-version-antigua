@@ -1,6 +1,6 @@
 {
   "require-dev": {
-    "phpunit/phpunit": "^9.0"
+    "phpunit/phpunit": "^11.5"
   },
   "autoload": {
     "psr-4": {
@@ -17,17 +17,17 @@
       "Tests\\": "test/"
     }
   },
-  "scripts": {
+"scripts": {
     "test": "phpunit",
     "test:auth": "phpunit --colors=always test/Controllers/AuthControllerTest.php",
     "test:categoria": "phpunit --colors=always test/Controllers/CategoriaControllerTest.php",
-    "test:sede": "phpunit --colors=always --colors=always test/Controllers/SedeControllerTest.php",
-    "test:usuario": "phpunit --colors=always --colors=always test/Controllers/UsuariosControllerTest.php",
-    "test:cliente": "phpunit --colors=always --colors=always test/Controllers/ClientesControllerTest.php",
-    "test:home": "phpunit --colors=always --colors=always test/Controllers/HomeControllerTest.php",
-    "test:mesas": "phpunit --colors=always --colors=always test/Controllers/MesasControllerTest.php",
+    "test:sede": "phpunit --colors=always test/Controllers/SedeControllerTest.php",
+    "test:usuario": "phpunit --colors=always test/Controllers/UsuariosControllerTest.php",
+    "test:cliente": "phpunit --colors=always test/Controllers/ClientesControllerTest.php",
+    "test:home": "phpunit --colors=always test/Controllers/HomeControllerTest.php",
+    "test:mesas": "phpunit --colors=always test/Controllers/MesasControllerTest.php",
     "test:productos": "phpunit --colors=always --verbose --testdox --debug test/Controllers/ProductosControllerTest.php",
     "test:controllers": "phpunit --colors=always test/Controllers/",
     "test:coverage": "phpunit --coverage-html coverage"
-  }
+}
 }

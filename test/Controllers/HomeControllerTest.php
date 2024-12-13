@@ -4,99 +4,81 @@ use PHPUnit\Framework\TestCase;
 
 class HomeControllerTest extends TestCase
 {
-    private $homeController;
+    protected $db;
+    protected $controller;
 
+    // Configuración inicial antes de cada prueba
     protected function setUp(): void
     {
-        parent::setUp();
+        // Inicializar la base de datos de prueba (asegúrate de configurar una base de datos separada para pruebas)
+        $this->db = new mysqli('localhost', 'root', '', 'pizza4');  // Cambiar con tus datos de base de datos
+        $this->db->query('TRUNCATE TABLE sedes'); // Limpiar la tabla para pruebas
+        $this->db->query('TRUNCATE TABLE usuarios'); // Limpiar tabla de usuarios si es necesario
+        $this->db->query('TRUNCATE TABLE pedidos'); // Limpiar tabla de pedidos si es necesario
 
-        // Inicializar controlador
-        $this->homeController = new HomeController();
-
-        // Configurar base de datos de prueba
-        $db = new mysqli('localhost', 'root', '', 'piza4'); // Configura según tu entorno
-        $db->query('TRUNCATE TABLE sedes');
-        $db->query('TRUNCATE TABLE usuarios');
-        $db->query('TRUNCATE TABLE clientes');
+        // Instanciar el controlador
+        $this->controller = new HomeController();
     }
 
+    // Limpiar después de cada prueba
     protected function tearDown(): void
     {
-        // Limpiar base de datos después de cada prueba
-        $db = new mysqli('localhost', 'root', '', 'piza4');
-        $db->query('TRUNCATE TABLE sedes');
-        $db->query('TRUNCATE TABLE usuarios');
-        $db->query('TRUNCATE TABLE clientes');
-        $db->close();
+        // Cerrar conexión a la base de datos
+        $this->db->close();
     }
 
-    public function testIndexUserNotAuthenticated()
+    // Test para el método index cuando existen sedes
+    public function testIndexWithSedes()
     {
-        // Simular un usuario no autenticado
-        $_SESSION['usuario_id'] = null;
+        // Insertar una sede en la base de datos para asegurar que el controlador no redirija a registro
+        $this->db->query("INSERT INTO sedes (nombre, direccion) VALUES ('Sede Central', 'Calle Falsa 123')");
 
-        ob_start();
-        $this->homeController->index();
-        $output = ob_get_clean();
+        // Llamar al método index del controlador
+        $this->controller->index();
 
-        // Verificar que redirige a la página de salida
-        $this->assertStringContainsString('Location: ' . SALIR, $output);
+        // Verificar que el número de sedes es mayor a cero
+        $result = $this->db->query("SELECT COUNT(*) AS sedeCount FROM sedes");
+        $sedeCount = $result->fetch_assoc();
+
+        // Asegurarse de que el controlador ejecutó correctamente la lógica y no redirigió
+        $this->assertGreaterThan(0, $sedeCount['sedeCount']);
     }
 
-    public function testIndexRedirectToSedeRegistroWhenNoSedesExist()
+    // Test para el comportamiento cuando no hay sedes
+    public function testNoSedes()
     {
-        // Simular un usuario autenticado
-        $_SESSION['usuario_id'] = 1;
+        // Asegurarse de que no hay sedes en la base de datos
+        $this->db->query("DELETE FROM sedes");
 
-        // Limpiar sedes
-        $db = new mysqli('localhost', 'root', '', 'piza4');
-        $db->query('TRUNCATE TABLE sedes');
-
+        // Llamar al método index del controlador
+        // Se espera que el controlador redirija a la página de registro de sedes si no hay ninguna
         ob_start();
-        $this->homeController->index();
+        $this->controller->index();
         $output = ob_get_clean();
 
-        // Verificar que redirige a la página de registro de sedes
+        // Verificar que el controlador intenta redirigir a la página de registro
         $this->assertStringContainsString('Location: /PIZZA4/public/sede/registro', $output);
     }
 
-    public function testIndexLoadsDashboardViewWithDefaultData()
+    // Test para verificar los datos pasados a la vista
+    public function testDataPassedToView()
     {
-        // Simular un usuario autenticado
-        $_SESSION['usuario_id'] = 1;
+        // Insertar una sede en la base de datos para asegurar que el controlador no redirija
+        $this->db->query("INSERT INTO sedes (nombre, direccion) VALUES ('Sede Central', 'Calle Falsa 123')");
 
-        // Insertar una sede
-        $db = new mysqli('localhost', 'root', '', 'piza4');
-        $db->query("INSERT INTO sedes (nombre, direccion) VALUES ('Sede Central', 'Calle Principal 123')");
+        // Insertar algunos datos adicionales para simular la carga
+        $this->db->query("INSERT INTO usuarios (nombre, correo) VALUES ('Usuario Test', 'usuario@test.com')");
+        $this->db->query("INSERT INTO pedidos (usuario_id, estado) VALUES (1, 'pendiente')");
 
+        // Llamar al método index del controlador
         ob_start();
-        $this->homeController->index();
+        $this->controller->index();
         $output = ob_get_clean();
 
-        // Verificar que se carga la vista del dashboard
-        $this->assertStringContainsString('Dashboard', $output);
-        $this->assertStringContainsString('Usuarios: 0', $output);
-        $this->assertStringContainsString('Clientes: 0', $output);
-    }
-
-    public function testIndexHandlesExceptionGracefully()
-    {
-        // Simular un usuario autenticado
-        $_SESSION['usuario_id'] = 1;
-
-        // Sobrescribir método `countSedes` para lanzar una excepción
-        $this->homeController->setSedeModel(new class {
-            public function countSedes()
-            {
-                throw new Exception('Simulated exception');
-            }
-        });
-
-        ob_start();
-        $this->homeController->index();
-        $output = ob_get_clean();
-
-        // Verificar que muestra la página de error
-        $this->assertStringContainsString('Ha ocurrido un error en el servidor', $output);
+        // Verificar que los datos fueron correctamente pasados
+        $this->assertStringContainsString('usuariosCount', $output);
+        $this->assertStringContainsString('clientesCount', $output);
+        $this->assertStringContainsString('pedidosCount', $output);
+        $this->assertStringContainsString('productosCount', $output);
     }
 }

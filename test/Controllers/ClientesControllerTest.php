@@ -29,30 +29,26 @@ class ClientesControllerTest extends TestCase
     // Test para el método index
     public function testIndex()
     {
-        // Asegurarse de que la base de datos contiene datos antes de llamar a index()
+        // Insertar un cliente en la base de datos para probar
         $this->db->query("INSERT INTO clientes (nombre, email, telefono, direccion, dni)
-                                VALUES ('Juan Pérez', 'juan@example.com', '123456789', 'Calle Falsa 123', '12345678A')");
+                          VALUES ('Juan Pérez', 'juan@example.com', '123456789', 'Calle Falsa 123', '12345678A')");
 
         // Llamar al método index del controlador
-        $this->controller->index();
+        $this->controller->index(); // Aquí debes asegurarte de que la salida sea correcta
 
-        // Verificar que la salida contiene los datos que esperamos
-        // Esto dependerá de la implementación exacta de tu controlador y vistas
-        // Por ejemplo, puedes comprobar si los datos de los clientes se muestran correctamente
-
-        // Aquí se verifica que la consulta a la base de datos sea correcta
+        // Verificar que la consulta a la base de datos se realizó correctamente
         $result = $this->db->query('SELECT * FROM clientes');
         $clientes = $result->fetch_all(MYSQLI_ASSOC);
 
-        // Asegurarse de que se ha insertado el cliente correctamente
-        $this->assertCount(1, $clientes);
-        $this->assertEquals('Juan Pérez', $clientes[0]['nombre']);
+        // Asegurarse de que se haya insertado el cliente correctamente
+        $this->assertCount(1, $clientes); // Verificar que solo hay un cliente
+        $this->assertEquals('Juan Pérez', $clientes[0]['nombre']); // Verificar que el nombre sea correcto
     }
 
     // Test para el método create
     public function testCreate()
     {
-        // Simular los datos que se enviarían en el formulario
+        // Simular los datos de formulario para la creación del cliente
         $_POST['nombre'] = 'Carlos García';
         $_POST['email'] = 'carlos@example.com';
         $_POST['telefono'] = '987654321';
@@ -60,26 +56,27 @@ class ClientesControllerTest extends TestCase
         $_POST['dni'] = '87654321B';
 
         // Llamar al método create del controlador
-        $this->controller->create();
+        $this->controller->create(); // El método debe insertar los datos en la base de datos
 
-        // Verificar que los datos fueron insertados correctamente en la base de datos
+        // Verificar que el cliente fue insertado correctamente en la base de datos
         $result = $this->db->query("SELECT * FROM clientes WHERE nombre = 'Carlos García'");
         $cliente = $result->fetch_assoc();
 
-        // Asegurarse de que el cliente se ha creado correctamente
+        // Asegurarse de que el cliente existe en la base de datos
         $this->assertNotNull($cliente);
         $this->assertEquals('Carlos García', $cliente['nombre']);
+        $this->assertEquals('carlos@example.com', $cliente['email']);
     }
 
     // Test para el método edit
     public function testEdit()
     {
-        // Insertar un cliente en la base de datos para editar
+        // Insertar un cliente en la base de datos para actualizar
         $this->db->query("INSERT INTO clientes (nombre, email, telefono, direccion, dni)
-                            VALUES ('Ana López', 'ana@example.com', '234567890', 'Calle Ejemplo 789', '23456789C')");
-        $clienteId = $this->db->insert_id;
+                          VALUES ('Ana López', 'ana@example.com', '234567890', 'Calle Ejemplo 789', '23456789C')");
+        $clienteId = $this->db->insert_id; // Obtener el ID del cliente recién insertado
 
-        // Simular los datos que se enviarían en el formulario
+        // Simular los datos del formulario para la actualización del cliente
         $_POST['nombre'] = 'Ana López Actualizada';
         $_POST['email'] = 'ana_new@example.com';
         $_POST['telefono'] = '111223344';
@@ -87,13 +84,13 @@ class ClientesControllerTest extends TestCase
         $_POST['dni'] = '23456789D';
 
         // Llamar al método edit del controlador
-        $this->controller->edit($clienteId);
+        $this->controller->edit($clienteId); // El método debe actualizar los datos en la base de datos
 
-        // Verificar que los datos se han actualizado correctamente en la base de datos
+        // Verificar que los datos del cliente se hayan actualizado correctamente
         $result = $this->db->query("SELECT * FROM clientes WHERE id = $clienteId");
         $cliente = $result->fetch_assoc();
 
-        // Asegurarse de que el cliente fue actualizado
+        // Asegurarse de que los datos fueron actualizados
         $this->assertEquals('Ana López Actualizada', $cliente['nombre']);
         $this->assertEquals('ana_new@example.com', $cliente['email']);
     }
@@ -103,17 +100,17 @@ class ClientesControllerTest extends TestCase
     {
         // Insertar un cliente en la base de datos
         $this->db->query("INSERT INTO clientes (nombre, email, telefono, direccion, dni)
-                            VALUES ('Luis García', 'luis@example.com', '345678901', 'Calle Ejemplo 101', '34567890E')");
-        $clienteId = $this->db->insert_id;
+                          VALUES ('Luis García', 'luis@example.com', '345678901', 'Calle Ejemplo 101', '34567890E')");
+        $clienteId = $this->db->insert_id; // Obtener el ID del cliente recién insertado
 
         // Llamar al método delete del controlador
-        $this->controller->delete($clienteId);
+        $this->controller->delete($clienteId); // El método debe eliminar al cliente de la base de datos
 
-        // Verificar que el cliente ha sido eliminado de la base de datos
+        // Verificar que el cliente ha sido eliminado correctamente
         $result = $this->db->query("SELECT * FROM clientes WHERE id = $clienteId");
-        $cliente = $result->fetch_assoc();
+        $cliente = $result->fetch_assoc(); // Esto debería devolver null si el cliente fue eliminado
 
-        // Asegurarse de que el cliente ha sido eliminado
+        // Asegurarse de que el cliente ya no existe en la base de datos
         $this->assertNull($cliente);
     }
 }
