@@ -6,6 +6,7 @@ class PedidosController extends Controller
         Session::init();
         if (!Session::get('usuario_id')) {
             header('Location: ' . SALIR);
+            if (TESTING) return false;
             exit();
         }
 
@@ -13,12 +14,16 @@ class PedidosController extends Controller
         $pisos = $pisoModel->getPisos();
         $usuarioModel = $this->model('Usuario');
         $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+
+        if (TESTING) {
+            return ['pisos' => $pisos, 'rolUsuario' => $rolUsuario];
+        }
+
         $this->view('pedidos/index', [
             'pisos' => $pisos,
             'rolUsuario' => $rolUsuario
         ]);
     }
-
     public function selectMesa($piso_id)
     {
         Session::init();
@@ -86,25 +91,34 @@ class PedidosController extends Controller
         Session::init();
         if (!Session::get('usuario_id')) {
             header('Location: ' . SALIR);
+            if (TESTING) return false;
             exit();
         }
-
+    
         if ($_SERVER['REQUEST_METHOD'] == 'POST') {
-            $pedidoData = [
-                'mesa_id' => $mesa_id,
-                'cliente_id' => $_POST['cliente_id'],
-                'usuario_id' => Session::get('usuario_id'),
-                'estado' => 'pendiente',
-                'total' => $_POST['total'],
-                'fecha' => date('Y-m-d H:i:s')
-            ];
-            $pedidoModel = $this->model('Pedido');
-            $pedidoId = $pedidoModel->createPedido($pedidoData);
-
-            if ($pedidoId) {
+            try {
+                $pedidoData = [
+                    'mesa_id' => $mesa_id,
+                    'cliente_id' => $_POST['cliente_id'],
+                    'usuario_id' => Session::get('usuario_id'),
+                    'estado' => 'pendiente',
+                    'total' => $_POST['total'],
+                    'fecha' => date('Y-m-d H:i:s')
+                ];
+    
+                $pedidoModel = $this->model('Pedido');
+                $pedidoId = $pedidoModel->createPedido($pedidoData);
+    
+                if (!$pedidoId) {
+                    if (TESTING) return false;
+                    throw new Exception("Error al crear el pedido");
+                }
+    
+                // Actualizar estado de mesa
                 $mesaModel = $this->model('Mesa');
                 $mesaModel->updateEstado($mesa_id, 'ocupada');
-
+    
+                // Agregar detalles del pedido
                 if (isset($_POST['productos']) && is_array($_POST['productos'])) {
                     foreach ($_POST['productos'] as $producto) {
                         if ($producto['cantidad'] > 0) {
@@ -113,46 +127,58 @@ class PedidosController extends Controller
                                 'producto_id' => $producto['id'],
                                 'cantidad' => $producto['cantidad'],
                                 'precio' => $producto['precio'],
-                                'descripcion' => $producto['descripcion2'],
+                                'descripcion' => $producto['descripcion2'] ?? '',
                                 'estado' => 'pendiente'
                             ];
-                            $pedidoModel->addDetalle($detalleData);
+                            
+                            if (!$pedidoModel->addDetalle($detalleData)) {
+                                if (TESTING) return false;
+                                throw new Exception("Error al agregar detalle del pedido");
+                            }
                         }
                     }
                 }
-
+    
+                if (TESTING) return true;
+    
                 header('Location: /PIZZA4/public/pedidos/viewMesa/' . $mesa_id . "?success=pedido registrado con exito");
                 exit();
-            } else {
+    
+            } catch (Exception $e) {
+                if (TESTING) return false;
+                
                 $clienteModel = $this->model('Cliente');
                 $productoModel = $this->model('Producto');
-
+    
                 $this->view('pedidos/create', [
-                    'error' => 'Error al registrar el pedido.',
+                    'error' => $e->getMessage(),
                     'mesa_id' => $mesa_id,
                     'clientes' => $clienteModel->getAllClientes(),
                     'productos' => $productoModel->getAllProductos()
                 ]);
             }
         } else {
-            $clienteModel = $this->model('Cliente');
-            $clientes = $clienteModel->getAllClientes();
-
-            $productoModel = $this->model('Producto');
-            $productos = $productoModel->getAllProductos();
-            $usuarioModel = $this->model('Usuario');
-            $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-
-            // Obtener el cliente_id de la URL si está presente
-            $cliente_id = isset($_GET['cliente_id']) ? $_GET['cliente_id'] : null;
-
-            $this->view('pedidos/create', [
-                'mesa_id' => $mesa_id,
-                'clientes' => $clientes,
-                'productos' => $productos,
-                'cliente_id' => $cliente_id, // Pasar cliente_id a la vista
-                'rolUsuario' => $rolUsuario
-            ]);
+            try {
+                $clienteModel = $this->model('Cliente');
+                $productoModel = $this->model('Producto');
+                $usuarioModel = $this->model('Usuario');
+    
+                $data = [
+                    'mesa_id' => $mesa_id,
+                    'clientes' => $clienteModel->getAllClientes(),
+                    'productos' => $productoModel->getAllProductos(),
+                    'cliente_id' => $_GET['cliente_id'] ?? null,
+                    'rolUsuario' => $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'))
+                ];
+    
+                if (TESTING) return $data;
+    
+                $this->view('pedidos/create', $data);
+    
+            } catch (Exception $e) {
+                if (TESTING) return false;
+                throw $e;
+            }
         }
     }
 
@@ -198,7 +224,7 @@ class PedidosController extends Controller
                     }
                 }
 
-                header('Location: '. VIEW_MESA. $_POST['mesa_id']);
+                header('Location: ' . VIEW_MESA . $_POST['mesa_id']);
                 exit();
             } else {
                 die('Error al actualizar el pedido');
@@ -321,63 +347,54 @@ class PedidosController extends Controller
         Session::init();
         if (!Session::get('usuario_id')) {
             header('Location: ' . SALIR);
+            if (TESTING) return false;
             exit();
         }
 
-        $pedidoModel = $this->model('Pedido');
-        $pedido = $pedidoModel->getPedidoById($_POST['pedido_id']);
+        try {
+            $pedidoModel = $this->model('Pedido');
+            $pedido = $pedidoModel->getPedidoById($_POST['pedido_id']);
 
-        if ($pedido) {
-            // Recoger datos del formulario
+            if (!$pedido) {
+                if (TESTING) return false;
+                throw new Exception('Pedido no encontrado');
+            }
+
             $pedidoData = [
                 'pedido_id' => $_POST['pedido_id'],
                 'fecha' => date('Y-m-d H:i:s'),
                 'estado' => 'pagado',
                 'monto' => $_POST['total'],
-                'tipo' => $_POST['tipo'],
+                'tipo' => $_POST['tipo']
             ];
 
-
             if ($pedidoModel->updateEstadoPedido($pedidoData)) {
-                // Actualizar el estado de la mesa
                 $mesaModel = $this->model('Mesa');
                 $mesaModel->updateEstado($pedido['mesa_id'], 'libre');
 
-                // Verificación adicional
-                $pedidoExistente = $pedidoModel->getPedidoById($pedidoData['pedido_id']);
-                if ($pedidoExistente) {
-                    // Registrar el comprobante de venta
-                    $comprobanteModel = $this->model('ComprobanteVenta');
-                    if ($comprobanteModel->createComprobante($pedidoData)) {
-                        if ($_POST['boleta'] === 'si') {
-                            $boletaData = $pedidoModel->getDetailedPedidoById($pedidoData['pedido_id']);
-                            // Imprimir boleta
-                            $this->imprimirBoleta($boletaData);
-                        }
-                        // Redirigir a la vista de la mesa
-                        header('Location: ' . ORDER . '?success= Pedido pagado con éxito , se ha enviado un correo con la boleta de pedido');
-                        exit();
-                    } else {
-                        echo ('Error al registrar el comprobante de venta');
-                        exit();
+                $comprobanteModel = $this->model('ComprobanteVenta');
+                if ($comprobanteModel->createComprobante($pedidoData)) {
+                    if (TESTING) return true;
+
+                    if ($_POST['boleta'] === 'si') {
+                        $boletaData = $pedidoModel->getDetailedPedidoById($pedidoData['pedido_id']);
+                        $this->imprimirBoleta($boletaData);
                     }
-                } else {
-                    echo ('El pedido no existe en la base de datos');
+
+                    header('Location: ' . ORDER . '?success=Pedido pagado con éxito');
                     exit();
                 }
-            } else {
-                error_log('Error al actualizar el estado del pedido');
-                echo 'Error al actualizar el estado del pedido';
-                exit();
             }
-        } else {
-            error_log('Error al encontrar el pedido');
-            die('Error al encontrar el pedido');
-            echo 'Error al encontrar el pedido';
-            exit();
+
+            if (TESTING) return false;
+            throw new Exception('Error al procesar el pago');
+        } catch (Exception $e) {
+            if (TESTING) return false;
+            error_log($e->getMessage());
+            die($e->getMessage());
         }
     }
-    
+
     public function imprimirBoleta($datos)
     {
 
@@ -386,11 +403,9 @@ class PedidosController extends Controller
             header('Location: ' . SALIR);
             exit();
         }
-        
-            
-            return true;
-       
-            
+
+
+        return true;
     }
 
     public function enviarCorreo($datos)
@@ -402,11 +417,11 @@ class PedidosController extends Controller
         }
 
         try {
-            
+
             return 'Correo enviado exitosamente';
         } catch (Exception $e) {
             exit();
-            error_log('Error al enviar el correo: ' );
+            error_log('Error al enviar el correo: ');
             return null;
         }
     }
