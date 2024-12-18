@@ -29,6 +29,7 @@
     "test:productos": "phpunit --colors=always --verbose --testdox --debug test/Controllers/ProductosControllerTest.php",
     "test:pedidos": "phpunit --colors=always --verbose --testdox test/Controllers/PedidosControllerTest.php",
     "test:ventas": "phpunit --colors=always --verbose --testdox test/Controllers/VentasControllerTest.php",
+    "test:roles": "phpunit --colors=always --verbose --testdox test/Controllers/RolesControllerTest.php",
     "test:controllers": "phpunit --colors=always test/Controllers/",
     "test:coverage": "phpunit --coverage-html coverage"
   }

@@ -1,79 +1,173 @@
 <?php
-
 class RolesController extends Controller
 {
     public function index()
     {
         Session::init();
-        // Verificar si el usuario está autenticado
         if (!Session::get('usuario_id')) {
-            header('Location: ' . SALIR . '');
+            if (TESTING) {
+                return ['redirect' => SALIR];
+            }
+            header('Location: ' . SALIR);
             exit();
-        } else {
+        }
+
+        try {
             $rolModel = $this->model('Rol');
             $roles = $rolModel->getAllRoles();
-
             $usuarioModel = $this->model('Usuario');
             $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-            $this->view('roles/index', ['roles' => $roles, 'rolUsuario' => $rolUsuario]);
+
+            if (TESTING) {
+                return [
+                    'roles' => $roles,
+                    'rolUsuario' => $rolUsuario
+                ];
+            }
+
+            $this->view('roles/index', [
+                'roles' => $roles,
+                'rolUsuario' => $rolUsuario
+            ]);
+        } catch (Exception $e) {
+            if (TESTING) {
+                throw $e;
+            }
+            $this->view('error/index', ['mensaje' => 'Error al cargar los roles']);
         }
     }
 
     public function create()
     {
         Session::init();
-        // Verificar si el usuario está autenticado
         if (!Session::get('usuario_id')) {
-            header('Location: ' . SALIR . '');
+            if (TESTING) {
+                return ['redirect' => SALIR];
+            }
+            header('Location: ' . SALIR);
             exit();
-        } else {
-            if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+            try {
                 $nombre = $_POST['nombre'];
                 $rolModel = $this->model('Rol');
                 $rolModel->createRol($nombre);
-                header('Location: ' . ROL . '?success= Rol creado correctamente');
+
+                if (TESTING) {
+                    return true;
+                }
+
+                header('Location: ' . ROL . '?success=Rol creado correctamente');
                 exit();
-            } else {
-                $usuarioModel = $this->model('Usuario');
-                $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-                $this->view('roles/create', ['rolUsuario' => $rolUsuario]);
+            } catch (Exception $e) {
+                if (TESTING) {
+                    throw $e;
+                }
+                header('Location: ' . ROL . '?error=Error al crear el rol');
+                exit();
             }
         }
+
+        try {
+            $usuarioModel = $this->model('Usuario');
+            $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+
+            if (TESTING) {
+                return ['rolUsuario' => $rolUsuario];
+            }
+
+            $this->view('roles/create', ['rolUsuario' => $rolUsuario]);
+        } catch (Exception $e) {
+            if (TESTING) {
+                throw $e;
+            }
+            $this->view('error/index', ['mensaje' => 'Error al cargar el formulario']);
+        }
     }
+
     public function edit($id)
     {
         Session::init();
-        // Verificar si el usuario está autenticado
         if (!Session::get('usuario_id')) {
-            header('Location: ' . SALIR . '');
+            if (TESTING) {
+                return ['redirect' => SALIR];
+            }
+            header('Location: ' . SALIR);
             exit();
-        } else {
+        }
+
+        try {
+            $rolModel = $this->model('Rol');
+
             if ($_SERVER['REQUEST_METHOD'] == 'POST') {
                 $nombre = $_POST['nombre'];
-                $rolModel = $this->model('Rol');
                 $rolModel->updateRol($id, $nombre);
-                header('Location: ' . ROL . '?success= Rol actualizado correctamente');
+
+                if (TESTING) {
+                    return true;
+                }
+
+                header('Location: ' . ROL . '?success=Rol actualizado correctamente');
                 exit();
             } else {
-                $rolModel = $this->model('Rol');
                 $rol = $rolModel->getRolById($id);
                 $usuarioModel = $this->model('Usuario');
                 $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-                $this->view('roles/edit', ['rol' => $rol, 'rolUsuario' => $rolUsuario]);
+
+                if (TESTING) {
+                    return [
+                        'rol' => $rol,
+                        'rolUsuario' => $rolUsuario
+                    ];
+                }
+
+                $this->view('roles/edit', [
+                    'rol' => $rol,
+                    'rolUsuario' => $rolUsuario
+                ]);
             }
+        } catch (Exception $e) {
+            if (TESTING) {
+                throw $e;
+            }
+
+            if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+                header('Location: ' . ROL . '?error=Error al actualizar el rol');
+                exit();
+            }
+
+            $this->view('error/index', ['mensaje' => 'Error al cargar el formulario de edición']);
         }
     }
+
     public function delete($id)
     {
         Session::init();
-        // Verificar si el usuario está autenticado
         if (!Session::get('usuario_id')) {
-            header('Location: ' . SALIR . '');
+            if (TESTING) {
+                return ['redirect' => SALIR];
+            }
+            header('Location: ' . SALIR);
             exit();
-        } else {
+        }
+
+        try {
             $rolModel = $this->model('Rol');
             $rolModel->deleteRol($id);
-            header('Location: ' . ROL . '?success= Rol eliminado correctamente');
+
+            if (TESTING) {
+                return true;
+            }
+
+            header('Location: ' . ROL . '?success=Rol eliminado correctamente');
+            exit();
+        } catch (Exception $e) {
+            if (TESTING) {
+                throw $e;
+            }
+            header('Location: ' . ROL . '?error=Error al eliminar el rol');
+            exit();
         }
     }
 }
