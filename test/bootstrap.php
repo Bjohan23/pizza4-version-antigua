@@ -35,6 +35,7 @@ require_once BASE_PATH . '/app/Controllers/PedidosController.php';
 require_once BASE_PATH . '/app/Controllers/SedeController.php';
 require_once BASE_PATH . '/app/Controllers/UsuariosController.php';
 require_once BASE_PATH . '/app/Controllers/ProductosController.php';
+require_once BASE_PATH . '/app/Controllers/VentasController.php'; // Cambio aquí
 
 // Models
 require_once BASE_PATH . '/app/Models/Usuario.php';
@@ -46,3 +47,4 @@ require_once BASE_PATH . '/app/Models/Sede.php';
 require_once BASE_PATH . '/app/Models/Persona.php';
 require_once BASE_PATH . '/app/Models/Piso.php';
 require_once BASE_PATH . '/app/Models/Producto.php';
+require_once BASE_PATH . '/app/Models/ComprobanteVenta.php'; // Asegúrate de incluir este modelo
