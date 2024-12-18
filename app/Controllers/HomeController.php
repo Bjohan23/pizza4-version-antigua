@@ -7,47 +7,69 @@ class HomeController extends Controller
         try {
             Session::init();
 
+            // Redirección si no hay usuario autenticado
             if (!Session::get('usuario_id')) {
-                header('Location: ' . SALIR);
+                $redirectUrl = SALIR;
+                if (defined('TESTING') && TESTING === true) {
+                    return $redirectUrl; // Devuelve la URL para pruebas
+                }
+                header('Location: ' . $redirectUrl);
                 exit();
             }
 
-            // Habilitar temporalmente el reporte de errores para depuración
-            error_reporting(E_ALL);
-            ini_set('display_errors', 1);
-
+            // Verificar si hay sedes registradas
             $sedeModel = $this->model('Sede');
             $sedeCount = $sedeModel->countSedes();
-            
+
             if ($sedeCount == 0) {
-                header('Location: /PIZZA4/public/sede/registro');
+                $redirectUrl = '/PIZZA4/public/sede/registro';
+                if (defined('TESTING') && TESTING === true) {
+                    return $redirectUrl; // Devuelve la URL para pruebas
+                }
+                header('Location: ' . $redirectUrl);
                 exit();
             }
 
-            // Resto de tu código...
+            // Obtener todos los conteos
+            $usuarioModel = $this->model('Usuario');
+            $clienteModel = $this->model('Cliente');
+            $pedidoModel = $this->model('Pedido');
+            $productoModel = $this->model('Producto');
+            $pisoModel = $this->model('Piso');
+            $rolModel = $this->model('Rol');
+            $mesaModel = $this->model('Mesa');
+            $categoriaModel = $this->model('Categoria');
 
-            // Verificar que los datos no sean null antes de pasarlos a la vista
+            // Obtener datos del usuario actual
+            $usuario = $usuarioModel->getUsuarioById(Session::get('usuario_id'));
+            $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+
+            // Preparar los datos para la vista
             $data = [
-                'usuariosCount' => $usuariosCount ?? 0,
-                'clientesCount' => $clientesCount ?? 0,
-                'pedidosCount' => $pedidosCount ?? 0,
-                'productosCount' => $productosCount ?? 0,
-                'pisoCount' => $pisoCount ?? 0,
-                'rolesCount' => $rolesCount ?? 0,
-                'mesasCount' => $mesasCount ?? 0,
-                'categoriasCount' => $categoriasCount ?? 0,
-                'totalPedidosPorEstado' => $totalPedidosPorEstado ?? [],
-                'productosMasVendidos' => $productosMasVendidos ?? [],
-                'usuario' => $usuario ?? null,
-                'rolUsuario' => $rolUsuario ?? null,
+                'usuariosCount' => $usuarioModel->countUsuarios(),
+                'clientesCount' => $clienteModel->countClientes(),
+                'pedidosCount' => $pedidoModel->countPedidos(),
+                'productosCount' => $productoModel->countProductos(),
+                'pisoCount' => $pisoModel->pisosCount(),
+                'rolesCount' => $rolModel->contadorDeRoles(),
+                'mesasCount' => $mesaModel->mesasCount(),
+                'categoriasCount' => $categoriaModel->categoriasCount(),
+                'totalPedidosPorEstado' => $pedidoModel->getTotalPedidosPorEstado(),
+                'productosMasVendidos' => $pedidoModel->getProductosMasVendidos(),
+                'usuario' => $usuario,
+                'rolUsuario' => $rolUsuario
             ];
 
-            $this->view('dashboard', $data);
+            if (defined('TESTING') && TESTING === true) {
+                return $data; // Devuelve datos para pruebas
+            }
 
+            $this->view('dashboard', $data); // Renderiza vista en producción
         } catch (Exception $e) {
-            // Loguear el error
             error_log("Error en HomeController: " . $e->getMessage());
-            // Mostrar una página de error amigable
+            if (defined('TESTING') && TESTING === true) {
+                throw $e; // Re-lanza excepciones en pruebas
+            }
             $this->view('error/500', ['message' => 'Ha ocurrido un error en el servidor']);
         }
     }

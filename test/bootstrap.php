@@ -1,13 +1,16 @@
 <?php
 ob_start();
 
+// Cargar configuración principal
+require_once dirname(__DIR__) . '/config/config.php';
+
 // Constantes base
 if (!defined('TESTING')) define('TESTING', true);
 if (!defined('BASE_PATH')) define('BASE_PATH', dirname(__DIR__));
 
 // Constantes de rutas
 if (!defined('INICIO')) define('INICIO', '/inicio');
-if (!defined('LOGIN')) define('LOGIN', '/login'); 
+if (!defined('LOGIN')) define('LOGIN', '/login');
 if (!defined('SALIR')) define('SALIR', '/logout');
 if (!defined('SEDE')) define('SEDE', '/sede');
 if (!defined('SEDE_CREATE')) define('SEDE_CREATE', '/sede/registro');
@@ -17,7 +20,7 @@ require_once BASE_PATH . '/config/database.test.php';
 
 // Core classes
 require_once BASE_PATH . '/app/core/App.php';
-require_once BASE_PATH . '/app/core/Controller.php'; 
+require_once BASE_PATH . '/app/core/Controller.php';
 require_once BASE_PATH . '/app/core/Database.php';
 require_once BASE_PATH . '/app/core/Model.php';
 require_once BASE_PATH . '/app/core/Session.php';

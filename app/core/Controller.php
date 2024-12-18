@@ -4,10 +4,10 @@ class Controller
 {
     public function model($model)
     {
-        $modelPath = defined('BASE_PATH') 
+        $modelPath = defined('BASE_PATH')
             ? BASE_PATH . '/app/Models/' . $model . '.php'
-            : '../app/models/' . $model . '.php';
-            
+            : '../app/Models/' . $model . '.php';
+
         require_once $modelPath;
         return new $model();
     }
@@ -32,7 +32,7 @@ class Controller
         Session::init();
 
         // Definir la ruta base de las vistas usando BASE_PATH si está definido
-        $viewPath = defined('BASE_PATH') 
+        $viewPath = defined('BASE_PATH')
             ? BASE_PATH . '/app/Views/'
             : '../app/Views/';
 
