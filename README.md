@@ -1,6 +1,9 @@
 # 🍕 Sistema de Gestión de Pizzería
 
 ¡Hola! 👋 Este es un programa para ayudarte a manejar tu negocio de pizzas. Vamos a instalarlo paso a paso, ¡es más fácil de lo que parece! 
+## 📚 Documentación
+
+- [Documentación de Pruebas](TESTING.md)
 
 ## 📋 Lo que necesitas antes de empezar
 

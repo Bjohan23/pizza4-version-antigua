@@ -1,4 +1,7 @@
 # 📚 Guía de Testing para el Proyecto Pizza4
+## 📚 Documentación
+
+- [Guía de Instalación](README.md)
 
 ## 📋 Tabla de Contenidos
 1. [Introducción](#introducción)
