@@ -18,10 +18,10 @@ class ClientesControllerTest extends TestCase
         $this->db->exec("DELETE FROM usuarios");
 
         // Insertar datos iniciales necesarios
-        $this->db->exec("INSERT INTO personas (id, nombre, telefono, direccion, email, dni) 
-                         VALUES (1, 'UsuarioTest', '123456789', 'Calle Principal', 'test@example.com', '12345678')");
-        $this->db->exec("INSERT INTO usuarios (id, persona_id, contrasena) 
-                         VALUES (1, 1, 'testpassword')");
+        $this->db->exec("INSERT INTO personas (id, nombre, telefono, direccion, email, dni)
+                            VALUES (1, 'UsuarioTest', '123456789', 'Calle Principal', 'test@example.com', '12345678')");
+        $this->db->exec("INSERT INTO usuarios (id, persona_id, contrasena)
+                            VALUES (1, 1, 'testpassword')");
 
         // Crear una instancia del controlador
         $this->controller = new ClientesController();
