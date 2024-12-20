@@ -6,6 +6,9 @@ class PisosController extends Controller
     {
         Session::init();
         if (!Session::get('usuario_id')) {
+            if (defined('TESTING') && TESTING) {
+                return ['redirect' => SALIR];
+            }
             header('Location: ' . SALIR . '');
             exit();
         }
@@ -15,6 +18,14 @@ class PisosController extends Controller
 
         $usuarioModel = $this->model('Usuario');
         $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+
+        if (defined('TESTING') && TESTING) {
+            return [
+                'pisos' => $pisos,
+                'rolUsuario' => $rolUsuario
+            ];
+        }
+
         $this->view('pisos/index', ['pisos' => $pisos, 'rolUsuario' => $rolUsuario]);
     }
 
@@ -22,6 +33,9 @@ class PisosController extends Controller
     {
         Session::init();
         if (!Session::get('usuario_id')) {
+            if (defined('TESTING') && TESTING) {
+                return ['redirect' => SALIR];
+            }
             header('Location: ' . SALIR . '');
             exit();
         }
@@ -32,36 +46,53 @@ class PisosController extends Controller
                 'sede_id' => $_POST['sede_id']
             ];
             $pisoModel = $this->model('Piso');
-            if ($pisoModel->createPiso($data)) {
-                header('Location: ' . PISOS . '?success=Piso registrado correctamente');
-                exit();
-            } else {
-                header('Location: ' . PISOS . '?error=Piso registrado correctamente');
-                exit();
+            $result = $pisoModel->createPiso($data);
+
+            if (defined('TESTING') && TESTING) {
+                return $result;
             }
+
+            if ($result) {
+                header('Location: ' . PISOS . '?success=Piso registrado correctamente');
+            } else {
+                header('Location: ' . PISOS . '?error=No se pudo registrar el piso');
+            }
+            exit();
         } else {
             $sedeModel = $this->model('Sede');
             $sedes = $sedeModel->getAllSedes();
             $usuarioModel = $this->model('Usuario');
             $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+
+            if (defined('TESTING') && TESTING) {
+                return [
+                    'sedes' => $sedes,
+                    'rolUsuario' => $rolUsuario
+                ];
+            }
+
             $this->view('pisos/create', ['sedes' => $sedes, 'rolUsuario' => $rolUsuario]);
         }
     }
+
     public function edit($id)
     {
         Session::init();
         if (!Session::get('usuario_id')) {
+            if (defined('TESTING') && TESTING) {
+                return ['redirect' => SALIR];
+            }
             header('Location: ' . SALIR);
             exit();
         }
 
         $pisoModel = $this->model('Piso');
-        $piso = $pisoModel->getPisoById($id); // Obtener los detalles del piso
-
-        $usuarioModel = $this->model('Usuario');
-        $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+        $piso = $pisoModel->getPisoById($id);
 
         if (!$piso) {
+            if (defined('TESTING') && TESTING) {
+                return ['error' => 'No se encontró el piso'];
+            }
             header('Location: ' . PISOS . '?error=No se encontró el piso.');
             exit();
         }
@@ -72,41 +103,73 @@ class PisosController extends Controller
                 'nombre' => $_POST['nombre'],
                 'sede_id' => $_POST['sede_id']
             ];
-            if ($pisoModel->updatePiso($data)) {
-                header('Location: ' . PISOS . '?success=Piso actualizado correctamente');
-                exit();
-            } else {
-                header('Location: ' . PISOS . '?error=nose pudo actualizar el piso correctamente');
-                exit();
+            $result = $pisoModel->updatePiso($data);
+
+            if (defined('TESTING') && TESTING) {
+                return $result;
             }
+
+            if ($result) {
+                header('Location: ' . PISOS . '?success=Piso actualizado correctamente');
+            } else {
+                header('Location: ' . PISOS . '?error=No se pudo actualizar el piso correctamente');
+            }
+            exit();
         }
-        // Solo obtenemos las sedes si estamos mostrando el formulario de edición
+
         $sedeModel = $this->model('Sede');
         $sedes = $sedeModel->getAllSedes();
-        $this->view('pisos/edit', ['piso' => $piso, 'sedes' => $sedes, 'rolUsuario' => $rolUsuario]);
+        $usuarioModel = $this->model('Usuario');
+        $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
+
+        if (defined('TESTING') && TESTING) {
+            return [
+                'piso' => $piso,
+                'sedes' => $sedes,
+                'rolUsuario' => $rolUsuario
+            ];
+        }
+
+        $this->view('pisos/edit', [
+            'piso' => $piso,
+            'sedes' => $sedes,
+            'rolUsuario' => $rolUsuario
+        ]);
     }
 
     public function delete($id)
     {
         Session::init();
         if (!Session::get('usuario_id')) {
+            if (defined('TESTING') && TESTING) {
+                return ['redirect' => SALIR];
+            }
             header('Location: ' . SALIR);
             exit();
         }
 
         $pisoModel = $this->model('Piso');
-        if ($pisoModel->deletePiso($id)) {
+        $result = $pisoModel->deletePiso($id);
+
+        if (defined('TESTING') && TESTING) {
+            return $result;
+        }
+
+        if ($result) {
             header('Location: ' . PISOS . '?success=Piso eliminado correctamente');
-            exit();
         } else {
             header('Location: ' . PISOS . '?error=No se pudo eliminar el piso');
-            exit();
         }
+        exit();
     }
+
     public function mesas($id)
     {
         Session::init();
         if (!Session::get('usuario_id')) {
+            if (defined('TESTING') && TESTING) {
+                return ['redirect' => SALIR];
+            }
             header('Location: ' . SALIR);
             exit();
         }
@@ -117,6 +180,19 @@ class PisosController extends Controller
         $mesas = $mesaModel->getMesasByPisoId($id);
         $usuarioModel = $this->model('Usuario');
         $rolUsuario = $usuarioModel->getRolesUsuarioAutenticado(Session::get('usuario_id'));
-        $this->view('pisos/mesas', ['piso' => $piso, 'mesas' => $mesas, 'rolUsuario' => $rolUsuario]);
+
+        if (defined('TESTING') && TESTING) {
+            return [
+                'piso' => $piso,
+                'mesas' => $mesas,
+                'rolUsuario' => $rolUsuario
+            ];
+        }
+
+        $this->view('pisos/mesas', [
+            'piso' => $piso,
+            'mesas' => $mesas,
+            'rolUsuario' => $rolUsuario
+        ]);
     }
 }
