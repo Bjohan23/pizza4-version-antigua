@@ -1,28 +1,34 @@
 # 📚 Guía de Testing para el Proyecto Pizza4
+
 ## 📚 Documentación
 
 - [Guía de Instalación](README.md)
 
 ## 📋 Tabla de Contenidos
+
 1. [Introducción](#introducción)
 2. [Configuración](#configuración)
 3. [Estructura de las Pruebas](#estructura-de-las-pruebas)
-4. [Funciones PHPUnit Más Usadas](#funciones-phpunit-más-usadas)
-5. [Patrones y Mejores Prácticas](#patrones-y-mejores-prácticas)
-6. [Ejemplos Prácticos](#ejemplos-prácticos)
+4. [Controladores y sus Tests](#controladores-y-sus-tests)
+5. [Funciones PHPUnit Más Usadas](#funciones-phpunit-más-usadas)
+6. [Patrones y Mejores Prácticas](#patrones-y-mejores-prácticas)
+7. [Solución de Problemas](#solución-de-problemas)
 
 ## 🎯 Introducción
 
-Esta documentación explica cómo se realizan las pruebas en el proyecto Pizza4. Utilizamos PHPUnit como framework de testing y seguimos un enfoque de pruebas unitarias y de integración.
+Esta guía explica cómo se realizan las pruebas en el proyecto Pizza4. Utilizamos PHPUnit como framework de testing, siguiendo un enfoque de pruebas unitarias y de integración.
 
 ## ⚙️ Configuración
 
 ### Requisitos
+
 - PHP 7.4 o superior
 - PHPUnit 9.6
 - Composer
+- MySQL/MariaDB
 
-### Instalación
+### Instalación y Ejecución
+
 ```bash
 # Instalar dependencias
 composer install
@@ -30,242 +36,480 @@ composer install
 # Ejecutar todas las pruebas
 composer test
 
-# Ejecutar pruebas específicas
-composer test:roles    # Pruebas de roles
-composer test:ventas   # Pruebas de ventas
-composer test:auth     # Pruebas de autenticación
+# Ejecutar pruebas por controlador
+composer test:auth      # Pruebas de autenticación
+composer test:roles     # Pruebas de roles
+composer test:usuarios  # Pruebas de usuarios
+composer test:clientes  # Pruebas de clientes
+composer test:sede      # Pruebas de sede
+composer test:pisos     # Pruebas de pisos
+composer test:mesas     # Pruebas de mesas
+composer test:productos # Pruebas de productos
+composer test:pedidos   # Pruebas de pedidos
+composer test:ventas    # Pruebas de ventas
 ```
 
 ## 🏗️ Estructura de las Pruebas
 
 ### Organización de Archivos
+
 ```
 test/
-├── Controllers/           # Pruebas de controladores
+├── Controllers/
 │   ├── AuthControllerTest.php
 │   ├── RolesControllerTest.php
+│   ├── UsuariosControllerTest.php
+│   ├── ClientesControllerTest.php
+│   ├── SedeControllerTest.php
+│   ├── PisosControllerTest.php
+│   ├── MesasControllerTest.php
+│   ├── ProductosControllerTest.php
+│   ├── PedidosControllerTest.php
 │   └── VentasControllerTest.php
-├── Models/               # Pruebas de modelos
-└── bootstrap.php        # Archivo de inicialización
+├── Models/
+└── bootstrap.php
 ```
 
-### Estructura Básica de una Prueba
+## 🎯 Controladores y sus Tests
+
+### 1. AuthControllerTest
+
+```php
+class AuthControllerTest extends TestCase
+{
+    public function testLoginConCredencialesValidas()
+    {
+        $_POST['email'] = 'test@example.com';
+        $_POST['contraseña'] = 'password123';
+        $result = $this->authController->login();
+        $this->assertEquals(INICIO, $result);
+    }
+}
+```
+
+### 2. RolesControllerTest
+
 ```php
 class RolesControllerTest extends TestCase
 {
-    protected function setUp(): void
+    public function testCrearRol()
     {
-        // Preparación antes de cada prueba
-    }
-
-    public function testNombreDeLaPrueba()
-    {
-        // Arrange (Preparar)
-        $datos = [...];
-
-        // Act (Actuar)
-        $resultado = $this->controlador->accion($datos);
-
-        // Assert (Verificar)
-        $this->assertEquals($esperado, $resultado);
-    }
-
-    protected function tearDown(): void
-    {
-        // Limpieza después de cada prueba
+        $_SESSION['usuario_id'] = 1;
+        $_POST['nombre'] = 'Nuevo Rol';
+        $result = $this->rolesController->create();
+        $this->assertTrue($result);
     }
 }
 ```
 
-## 🛠️ Funciones PHPUnit Más Usadas
+### 3. UsuariosControllerTest
 
-### Aserciones Básicas
 ```php
-// Verificar igualdad
-$this->assertEquals($esperado, $actual);
-
-// Verificar que algo es verdadero/falso
-$this->assertTrue($condicion);
-$this->assertFalse($condicion);
-
-// Verificar que algo es null/no null
-$this->assertNull($valor);
-$this->assertNotNull($valor);
-
-// Verificar que un array tiene una clave
-$this->assertArrayHasKey('clave', $array);
-
-// Verificar que un array está vacío/no vacío
-$this->assertEmpty($array);
-$this->assertNotEmpty($array);
-
-// Verificar que una cadena contiene algo
-$this->assertStringContainsString('buscar', $cadena);
-```
-
-### Manejo de Excepciones
-```php
-// Verificar que se lanza una excepción
-$this->expectException(TipoDeExcepcion::class);
-$this->expectExceptionMessage('mensaje esperado');
-
-// O usando un bloque try-catch
-try {
-    $resultado = $funcion();
-    $this->fail('Se esperaba una excepción');
-} catch (Exception $e) {
-    $this->assertInstanceOf(TipoDeExcepcion::class, $e);
-}
-```
-
-## 🎯 Patrones y Mejores Prácticas
-
-### 1. Patrón AAA (Arrange-Act-Assert)
-```php
-public function testCrearRol()
+class UsuariosControllerTest extends TestCase
 {
-    // Arrange (Preparar)
-    $_POST['nombre'] = 'Nuevo Rol';
-    $_SESSION['usuario_id'] = 1;
-
-    // Act (Actuar)
-    $resultado = $this->rolesController->create();
-
-    // Assert (Verificar)
-    $this->assertTrue($resultado);
+    public function testCreate()
+    {
+        $_SESSION['usuario_id'] = 1;
+        $_POST = [
+            'nombre' => 'Nuevo Usuario',
+            'email' => 'nuevo@test.com',
+            'telefono' => '123456789',
+            'rol_id' => 1
+        ];
+        $result = $this->usuariosController->create();
+        $this->assertTrue($result);
+    }
 }
 ```
 
-### 2. Datos de Prueba
+### 4. ClientesControllerTest
+
 ```php
-private function createTestData()
+class ClientesControllerTest extends TestCase
 {
-    // Crear datos de prueba de forma aislada
-    $this->db->query('INSERT INTO roles (nombre) VALUES ("Rol Test")');
-    // ... más inserciones
+    public function testCreate()
+    {
+        $_SESSION['usuario_id'] = 1;
+        $_POST = [
+            'nombre' => 'Nuevo Cliente',
+            'email' => 'cliente@test.com',
+            'telefono' => '987654321'
+        ];
+        $result = $this->clientesController->create();
+        $this->assertTrue($result);
+    }
 }
 ```
 
-### 3. Limpieza de Ambiente
+### 5. SedeControllerTest
+
 ```php
+class SedeControllerTest extends TestCase
+{
+    public function testRegistro()
+    {
+        $_SESSION['usuario_id'] = 1;
+        $_POST = [
+            'nombre' => 'Nueva Sede',
+            'direccion' => 'Dirección Test'
+        ];
+        $result = $this->sedeController->registro();
+        $this->assertTrue($result);
+    }
+}
+```
+
+### 6. PisosControllerTest
+
+```php
+class PisosControllerTest extends TestCase
+{
+    public function testCreate()
+    {
+        $_SESSION['usuario_id'] = 1;
+        $_POST = [
+            'nombre' => 'Nuevo Piso',
+            'sede_id' => 1
+        ];
+        $result = $this->pisosController->create();
+        $this->assertTrue($result);
+    }
+}
+```
+
+### 7. MesasControllerTest
+
+```php
+class MesasControllerTest extends TestCase
+{
+    public function testCreate()
+    {
+        $_SESSION['usuario_id'] = 1;
+        $_POST = [
+            'piso_id' => 1,
+            'numero' => 1,
+            'capacidad' => 4
+        ];
+        $result = $this->mesasController->create();
+        $this->assertTrue($result);
+    }
+}
+```
+
+### 8. ProductosControllerTest
+
+```php
+class ProductosControllerTest extends TestCase
+{
+    public function testCreate()
+    {
+        $_SESSION['usuario_id'] = 1;
+        $_POST = [
+            'nombre' => 'Nuevo Producto',
+            'precio' => 10.50,
+            'categoria_id' => 1
+        ];
+        $result = $this->productosController->create();
+        $this->assertTrue($result);
+    }
+}
+```
+
+### 9. PedidosControllerTest
+
+```php
+class PedidosControllerTest extends TestCase
+{
+    public function testCreate()
+    {
+        $_SESSION['usuario_id'] = 1;
+        $_POST = [
+            'cliente_id' => 1,
+            'mesa_id' => 1,
+            'productos' => [
+                ['id' => 1, 'cantidad' => 2]
+            ]
+        ];
+        $result = $this->pedidosController->create(1);
+        $this->assertTrue($result);
+    }
+}
+```
+
+### 10. VentasControllerTest
+
+```php
+class VentasControllerTest extends TestCase
+{
+    public function testIndex()
+    {
+        $_SESSION['usuario_id'] = 1;
+        $result = $this->ventasController->index();
+        $this->assertArrayHasKey('ventas', $result);
+    }
+}
+```
+
+## 🔍 Patrones Comunes en los Tests
+
+### 1. Estructura Base para Cada Test
+
+```php
+protected function setUp(): void
+{
+    parent::setUp();
+    // 1. Definir constantes
+    if (!defined('TESTING')) define('TESTING', true);
+
+    // 2. Inicializar base de datos
+    $this->db = new Database();
+
+    // 3. Limpiar y preparar datos
+    $this->cleanDatabase();
+    $this->createTestData();
+
+    // 4. Instanciar controlador
+    $this->controller = new Controller();
+}
+
 protected function tearDown(): void
 {
+    // Limpiar después de cada prueba
     $this->cleanDatabase();
     $_SESSION = [];
     $_POST = [];
+    parent::tearDown();
 }
 ```
 
-## 📝 Ejemplos Prácticos
+### 2. Creación de Datos de Prueba
 
-### Prueba de Autenticación
 ```php
-public function testLoginConCredencialesValidas()
+private function createTestData()
 {
-    // Preparar
-    $_POST['email'] = 'test@example.com';
-    $_POST['contraseña'] = 'password123';
+    // 1. Crear roles
+    $this->db->query('INSERT INTO roles (nombre) VALUES ("admin")');
+    $rolId = $this->db->lastInsertId();
 
-    // Actuar
-    $resultado = $this->authController->login();
+    // 2. Crear persona
+    $this->db->query('INSERT INTO personas (nombre, email) VALUES (...)');
+    $personaId = $this->db->lastInsertId();
 
-    // Verificar
-    $this->assertEquals(INICIO, $resultado);
-    $this->assertNotNull($_SESSION['usuario_id']);
+    // 3. Crear usuario
+    $this->db->query('INSERT INTO usuarios (persona_id, contrasena) VALUES (...)');
+    $usuarioId = $this->db->lastInsertId();
+
+    // 4. Asignar rol
+    $this->db->query('INSERT INTO listroles (usuario_id, rol_id) VALUES (...)');
 }
 ```
 
-### Prueba de Crear Registro
+### 3. Limpieza de Base de Datos
+
 ```php
-public function testCrearRolExitoso()
+private function cleanDatabase()
 {
-    // Preparar
-    $_SESSION['usuario_id'] = 1;
-    $_POST['nombre'] = 'Nuevo Rol';
+    $tables = [
+        'pedidoscomanda',
+        'detallespedido',
+        'productos',
+        'mesas',
+        'piso',
+        'sede',
+        'clientes',
+        'listroles',
+        'usuarios',
+        'personas',
+        'roles'
+    ];
 
-    // Actuar
-    $resultado = $this->rolesController->create();
+    $this->db->beginTransaction();
+    $this->db->query('SET FOREIGN_KEY_CHECKS = 0');
 
-    // Verificar en base de datos
-    $this->db->query('SELECT nombre FROM roles WHERE nombre = :nombre');
-    $this->db->bind(':nombre', 'Nuevo Rol');
-    $rol = $this->db->single();
+    foreach ($tables as $table) {
+        $this->db->query("TRUNCATE TABLE `$table`");
+        $this->db->execute();
+    }
+
+    $this->db->query('SET FOREIGN_KEY_CHECKS = 1');
+    $this->db->commit();
+}
+```
+# 🛠️ PHPUnit 9: Funciones y Configuración
+
+## 📋 Funciones de Aserción PHPUnit 9
+
+### Aserciones Básicas
+```php
+// Compara valores esperando que sean iguales
+$this->assertEquals($esperado, $actual);
+// Descripción: Verifica que dos valores sean iguales usando el operador ==
+
+// Compara valores esperando que sean idénticos
+$this->assertSame($esperado, $actual);
+// Descripción: Verifica que dos valores sean idénticos usando el operador ===
+
+// Verifica que un valor sea verdadero
+$this->assertTrue($valor);
+// Descripción: Comprueba que un valor sea exactamente true
+
+// Verifica que un valor sea falso
+$this->assertFalse($valor);
+// Descripción: Comprueba que un valor sea exactamente false
+
+// Verifica que un valor sea null
+$this->assertNull($valor);
+// Descripción: Comprueba que un valor sea exactamente null
+
+// Verifica que un valor no sea null
+$this->assertNotNull($valor);
+// Descripción: Comprueba que un valor no sea null
+```
+
+### Aserciones de Arrays
+```php
+// Verifica que un array tenga una clave específica
+$this->assertArrayHasKey('clave', $array);
+// Descripción: Comprueba si existe una clave en el array
+
+// Verifica que un array no tenga una clave específica
+$this->assertArrayNotHasKey('clave', $array);
+// Descripción: Comprueba que no exista una clave en el array
+
+// Verifica que un array esté vacío
+$this->assertEmpty($array);
+// Descripción: Comprueba que un array no tenga elementos
+
+// Verifica que un array no esté vacío
+$this->assertNotEmpty($array);
+// Descripción: Comprueba que un array tenga al menos un elemento
+
+// Verifica el tamaño de un array
+$this->assertCount(3, $array);
+// Descripción: Comprueba que un array tenga exactamente n elementos
+```
+
+### Aserciones de Strings
+```php
+// Verifica que una cadena contenga un texto
+$this->assertStringContainsString('texto', $cadena);
+// Descripción: Busca un texto dentro de una cadena
+
+// Verifica que una cadena comience con un texto
+$this->assertStringStartsWith('inicio', $cadena);
+// Descripción: Comprueba el inicio de una cadena
+
+// Verifica que una cadena termine con un texto
+$this->assertStringEndsWith('final', $cadena);
+// Descripción: Comprueba el final de una cadena
+```
+
+### Aserciones de Tipos
+```php
+// Verifica que un valor sea del tipo esperado
+$this->assertIsArray($valor);
+$this->assertIsString($valor);
+$this->assertIsInt($valor);
+$this->assertIsFloat($valor);
+$this->assertIsBool($valor);
+// Descripción: Comprueba el tipo de dato de un valor
+
+// Verifica que un valor sea una instancia de una clase
+$this->assertInstanceOf(MiClase::class, $objeto);
+// Descripción: Comprueba el tipo de un objeto
+```
+
+### Aserciones de Excepciones
+```php
+// Verifica que se lance una excepción
+$this->expectException(MiExcepcion::class);
+// Descripción: Indica que se espera una excepción específica
+
+// Verifica el mensaje de la excepción
+$this->expectExceptionMessage('mensaje');
+// Descripción: Verifica el mensaje exacto de la excepción
+
+// Verifica que se lance una excepción con un código
+$this->expectExceptionCode(404);
+// Descripción: Verifica el código de la excepción
+```
+
+## 🚀 Scripts de Composer para Testing
+
+```json
+{
+  "scripts": {
+    // Ejecuta todas las pruebas
+    "test": "phpunit",
+
+    // Pruebas específicas por controlador
+    "test:auth": "phpunit --colors=always test/Controllers/AuthControllerTest.php",
+    // Muestra resultados con colores para mejor legibilidad
+
+    "test:categoria": "phpunit --colors=always test/Controllers/CategoriaControllerTest.php",
     
-    $this->assertEquals('Nuevo Rol', $rol['nombre']);
-}
-```
-
-### Prueba de Actualización
-```php
-public function testActualizarRol()
-{
-    // Preparar
-    $_SESSION['usuario_id'] = 1;
-    $_POST['nombre'] = 'Rol Actualizado';
-    $id = 1;
-
-    // Actuar
-    $resultado = $this->rolesController->edit($id);
-
-    // Verificar
-    $this->db->query('SELECT nombre FROM roles WHERE id = :id');
-    $this->db->bind(':id', $id);
-    $rol = $this->db->single();
+    "test:sede": "phpunit --colors=always test/Controllers/SedeControllerTest.php",
     
-    $this->assertEquals('Rol Actualizado', $rol['nombre']);
+    "test:usuario": "phpunit --colors=always test/Controllers/UsuariosControllerTest.php",
+    
+    "test:cliente": "phpunit --colors=always test/Controllers/ClientesControllerTest.php",
+    
+    // Pruebas con formato TestDox sin configuración personalizada
+    "test:home": "phpunit --no-configuration --testdox --colors=always test/Controllers/HomeControllerTest.php",
+    
+    "test:mesas": "phpunit --colors=always test/Controllers/MesasControllerTest.php",
+    
+    // Pruebas con salida detallada y depuración
+    "test:productos": "phpunit --colors=always --verbose --testdox --debug test/Controllers/ProductosControllerTest.php",
+    
+    // Pruebas con formato TestDox y salida detallada
+    "test:pedidos": "phpunit --colors=always --verbose --testdox test/Controllers/PedidosControllerTest.php",
+    "test:ventas": "phpunit --colors=always --verbose --testdox test/Controllers/VentasControllerTest.php",
+    "test:roles": "phpunit --colors=always --verbose --testdox test/Controllers/RolesControllerTest.php",
+    "test:pisos": "phpunit --colors=always --verbose --testdox test/Controllers/PisosControllerTest.php",
+    
+    // Prueba todos los controladores
+    "test:controllers": "phpunit --colors=always test/Controllers/",
+    
+    // Genera reporte de cobertura HTML
+    "test:coverage": "phpunit --coverage-html coverage"
+  }
 }
 ```
 
-## 🚀 Comandos Útiles
+### 📌 Flags de PHPUnit Explicados
 
-```bash
-# Ejecutar todas las pruebas
-composer test
+- `--colors=always`: Muestra los resultados con colores para mejor legibilidad
+  - Verde: Pruebas exitosas
+  - Rojo: Pruebas fallidas
+  - Amarillo: Pruebas incompletas/saltadas
 
-# Ejecutar pruebas con cobertura
-composer test:coverage
+- `--verbose`: Muestra información detallada durante la ejecución
+  - Incluye el nombre de cada prueba
+  - Muestra el tiempo de ejecución
+  - Muestra mensajes de depuración
 
-# Ejecutar pruebas específicas
-composer test:roles
-composer test:ventas
-composer test:auth
+- `--testdox`: Genera documentación legible de las pruebas
+  - Convierte nombres de pruebas a oraciones
+  - Facilita la lectura de resultados
+  - Útil para documentación
 
-# Ejecutar pruebas con detalles
-composer test:debug
+- `--debug`: Muestra información adicional de depuración
+  - Incluye stack traces completos
+  - Muestra variables internas
+  - Útil para resolver problemas
 
-# Ejecutar pruebas en orden aleatorio
-composer test:random
-```
+- `--no-configuration`: Ignora el archivo phpunit.xml
+  - Usa configuración por defecto
+  - Útil para pruebas rápidas
 
-## 📌 Consejos Adicionales
+- `--coverage-html`: Genera reporte de cobertura HTML
+  - Muestra qué código fue probado
+  - Indica porcentaje de cobertura
+  - Ayuda a identificar código sin pruebas
 
-1. **Aislamiento**: Cada prueba debe ser independiente y no depender de otras pruebas.
+## 📚 Referencias
 
-2. **Nombres Descriptivos**: Usar nombres que describan claramente qué se está probando:
-   ```php
-   testLoginRedireccionaAInicioConCredencialesValidas()
-   testCrearRolFallaSiUsuarioNoEstaAutenticado()
-   ```
-
-3. **Datos de Prueba**: Usar datos específicos para pruebas, no datos de producción.
-
-4. **Manejo de Errores**: Probar tanto casos exitosos como casos de error.
-
-5. **Documentación**: Documentar casos especiales o configuraciones necesarias.
-
-## ❓ Solución de Problemas Comunes
-
-1. **Error de base de datos**: Verificar la configuración en `database.test.php`
-
-2. **Pruebas no se ejecutan**: Verificar que PHPUnit está instalado correctamente
-
-3. **Errores de sesión**: Limpiar `$_SESSION` en `tearDown()`
-
-4. **Falsos positivos**: Verificar el orden de las pruebas y la limpieza de datos
-
-## 🔍 Referencias
-
-- [Documentación oficial de PHPUnit](https://phpunit.de/documentation.html)
-- [Guía de testing en PHP](https://phptherightway.com/#testing)
-- [Mejores prácticas de PHPUnit](https://phpunit.de/manual/6.5/en/writing-tests-for-phpunit.html)
-
+- [Documentación PHPUnit](https://phpunit.de/documentation.html)
+- [Testing en PHP](https://phptherightway.com/#testing)
+- [Best Practices](https://phpunit.de/manual/6.5/en/testing-practices.html)
