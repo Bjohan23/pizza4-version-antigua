@@ -6,171 +6,101 @@ class CategoriaControllerTest extends TestCase
 {
     private $categoriaController;
     private $db;
-    
+    private $startTime;
+
+
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         if (!defined('TESTING')) define('TESTING', true);
         if (!defined('SALIR')) define('SALIR', '/logout');
-        
-        require_once __DIR__ . '/../../app/core/Database.php';
-        require_once __DIR__ . '/../../app/core/Controller.php';
-        require_once __DIR__ . '/../../app/core/Model.php';
-        require_once __DIR__ . '/../../app/Models/Categoria.php';
-        require_once __DIR__ . '/../../app/Controllers/CategoriasController.php';
-        
-        $_SESSION = [];
+
         $this->db = new Database();
+        echo "\nPreparando base de datos para pruebas...";
         $this->cleanDatabase();
         $this->createTestData();
-        
+
         $this->categoriaController = new CategoriasController();
+        $this->startTime = microtime(true); // Iniciar temporizador
     }
-    
-    private function cleanDatabase()
-    {
-        try {
-            // Desactivar restricciones de clave foránea
-            $this->db->query('SET FOREIGN_KEY_CHECKS = 0');
-            $this->db->execute();
-            
-            // Limpiar tablas en orden correcto
-            $tables = [
-                'detallespedido',
-                'comprobanteventa',
-                'pedidoscomanda',
-                'listroles',
-                'usuarios',
-                'clientes',
-                'personas',
-                'productos',
-                'categoría',
-                'roles'
-            ];
-            
-            foreach ($tables as $table) {
-                $this->db->query("DELETE FROM `$table`");
-                $this->db->execute();
-                
-                // Reiniciar auto_increment
-                $this->db->query("ALTER TABLE `$table` AUTO_INCREMENT = 1");
-                $this->db->execute();
-            }
-            
-            // Reactivar restricciones
-            $this->db->query('SET FOREIGN_KEY_CHECKS = 1');
-            $this->db->execute();
-            
-        } catch (Exception $e) {
-            echo "\nError en cleanDatabase: " . $e->getMessage();
-        }
-    }
-    
+
     private function createTestData()
     {
         try {
-            // Crear persona de prueba
-            $this->db->query('INSERT INTO personas (nombre, email, telefono) VALUES (:nombre, :email, :telefono)');
-            $this->db->bind(':nombre', 'Usuario Test');
-            $this->db->bind(':email', 'test@test.com');
-            $this->db->bind(':telefono', '123456789');
+            $this->db->query('INSERT INTO categoría (nombre) VALUES ("Categoría Prueba")');
             $this->db->execute();
-            $personaId = $this->db->lastInsertId();
-            
-            // Crear usuario de prueba
-            $this->db->query('INSERT INTO usuarios (persona_id, contrasena) VALUES (:persona_id, :contrasena)');
-            $this->db->bind(':persona_id', $personaId);
-            $this->db->bind(':contrasena', password_hash('test123', PASSWORD_DEFAULT));
-            $this->db->execute();
-            $usuarioId = $this->db->lastInsertId();
-            
-            // Crear rol de prueba
-            $this->db->query('INSERT INTO roles (nombre) VALUES (:nombre)');
-            $this->db->bind(':nombre', 'admin');
-            $this->db->execute();
-            $rolId = $this->db->lastInsertId();
-            
-            // Asignar rol al usuario
-            $this->db->query('INSERT INTO listroles (usuario_id, rol_id, fecha_inicio) VALUES (:usuario_id, :rol_id, NOW())');
-            $this->db->bind(':usuario_id', $usuarioId);
-            $this->db->bind(':rol_id', $rolId);
-            $this->db->execute();
-            
-            // Crear categoría de prueba
-            $this->db->query('INSERT INTO `categoría` (nombre) VALUES (:nombre)');
-            $this->db->bind(':nombre', 'Categoría Test');
-            $this->db->execute();
-            
+            echo "\n✓ Categoría de prueba creada";
         } catch (Exception $e) {
-            echo "\nError en createTestData: " . $e->getMessage();
+            echo "\nError al crear datos de prueba: " . $e->getMessage();
         }
     }
-    
-    /**
-     * @runInSeparateProcess
-     */
-    public function testIndexWithAuthenticatedUser()
+
+    private function cleanDatabase()
     {
-        try {
-            echo "\nPrueba de listado de categorías:";
-            
-            // Configurar sesión
-            $_SESSION['usuario_id'] = 1;
-            
-            // Verificar que existe al menos una categoría
-            $this->db->query('SELECT COUNT(*) as count FROM categoría');
-            $result = $this->db->single();
-            $this->assertGreaterThan(0, $result['count'], 'Debe existir al menos una categoría');
-            
-            // Capturar la salida del método index
-            ob_start();
-            $this->categoriaController->index();
-            $output = ob_get_clean();
-            
-            $this->assertNotEmpty($output);
-            echo "\n✓ Usuario autenticado puede acceder al listado";
-            
-        } catch (Exception $e) {
-            echo "\nError en testIndexWithAuthenticatedUser: " . $e->getMessage();
-            throw $e;
+        $tables = ['categoría'];
+
+        $this->db->beginTransaction();
+        $this->db->query('SET FOREIGN_KEY_CHECKS = 0');
+        $this->db->execute();
+
+        foreach ($tables as $table) {
+            $this->db->query("TRUNCATE TABLE $table");
+            $this->db->execute();
         }
+
+        $this->db->query('SET FOREIGN_KEY_CHECKS = 1');
+        $this->db->execute();
+        $this->db->commit();
+        echo "\n✓ Base de datos limpiada";
     }
-    
+
     /**
-     * @runInSeparateProcess
+     * @test
+     * @testdox Verifica que se puedan listar las categorías
      */
-    public function testIndexWithUnauthenticatedUser()
+    public function testIndex()
     {
-        try {
-            echo "\nPrueba de acceso sin autenticación:";
-            
-            // Asegurarse que no hay sesión
-            $_SESSION = [];
-            
-            // Capturar headers
-            ob_start();
-            @$this->categoriaController->index();
-            ob_end_clean();
-            
-            $this->assertTrue(true);
-            echo "\n✓ Usuario no autenticado es redirigido correctamente";
-            
-        } catch (Exception $e) {
-            echo "\nError en testIndexWithUnauthenticatedUser: " . $e->getMessage();
-            throw $e;
-        }
+        echo "\nPrueba listado de categorías:";
+        $_SESSION['usuario_id'] = 1;
+
+        $result = $this->categoriaController->index();
+        $this->assertIsArray($result, "El resultado debe ser un array.");
+        $this->assertCount(1, $result, "Debe haber al menos una categoría listada.");
+        $this->assertEquals('Categoría Prueba', $result[0]['nombre'], "El nombre de la categoría debe coincidir.");
+        echo "\n✓ Listado de categorías correcto";
     }
-    
+
+    /**
+     * @test
+     * @testdox Verifica que se pueda crear una categoría
+     */
+    public function testCreate()
+    {
+        echo "\nPrueba creación de categoría:";
+        $_SESSION['usuario_id'] = 1;
+        $_SERVER['REQUEST_METHOD'] = 'POST';
+        $_POST = ['nombre' => 'Nueva Categoría'];
+
+        $result = $this->categoriaController->create();
+        $this->assertNull($result, "La creación debe redirigir sin retornar un valor.");
+
+        $this->db->query('SELECT * FROM categoría WHERE nombre = :nombre');
+        $this->db->bind(':nombre', 'Nueva Categoría');
+        $categoria = $this->db->single();
+
+        $this->assertNotNull($categoria, "La categoría debe haberse creado en la base de datos.");
+        $this->assertEquals('Nueva Categoría', $categoria['nombre'], "El nombre de la categoría debe coincidir.");
+        echo "\n✓ Categoría creada correctamente";
+    }
+
     protected function tearDown(): void
     {
-        try {
-            $this->cleanDatabase();
-            $_SESSION = [];
-            $_POST = [];
-        } catch (Exception $e) {
-            echo "\nError en tearDown: " . $e->getMessage();
-        }
+        echo "\nLimpiando pruebas...";
+        $this->cleanDatabase();
+        $_SESSION = [];
+        $_POST = [];
         parent::tearDown();
+        echo "\n✓ Limpieza completada";
     }
 }
