@@ -37,6 +37,7 @@ require_once BASE_PATH . '/app/Controllers/UsuariosController.php';
 require_once BASE_PATH . '/app/Controllers/ProductosController.php';
 require_once BASE_PATH . '/app/Controllers/VentasController.php';
 require_once BASE_PATH . '/app/Controllers/RolesController.php';
+require_once BASE_PATH . '/app/Controllers/PisosController.php';
 
 // Models
 require_once BASE_PATH . '/app/Models/Usuario.php';

@@ -30,6 +30,7 @@
     "test:pedidos": "phpunit --colors=always --verbose --testdox test/Controllers/PedidosControllerTest.php",
     "test:ventas": "phpunit --colors=always --verbose --testdox test/Controllers/VentasControllerTest.php",
     "test:roles": "phpunit --colors=always --verbose --testdox test/Controllers/RolesControllerTest.php",
+    "test:pisos": "phpunit --colors=always --verbose --testdox test/Controllers/PisosControllerTest.php",
     "test:controllers": "phpunit --colors=always test/Controllers/",
     "test:coverage": "phpunit --coverage-html coverage"
   }
